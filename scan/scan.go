@@ -14,25 +14,25 @@ import (
 const signThreshold = 0.95
 
 func Monitor(cfg config.Config) {
-	alertChan := make(chan alert.Alert)
+	exit := make(chan bool)
 	for _, network := range cfg.Networks {
-		go func(n config.Network, a chan<- alert.Alert) {
+		alertChan := make(chan alert.Alert)
+		go func(n config.Network, aChan chan<- alert.Alert) {
 			for {
-				checkNetwork(n, a)
+				checkNetwork(n, aChan)
 				time.Sleep(time.Duration(n.Interval) * time.Minute)
 			}
 
 		}(network, alertChan)
+		go func(aChan <-chan alert.Alert) {
+			var alerted bool
+			for {
+				a := <-aChan
+				a.Handle(cfg.Notifiers, &alerted)
+			}
+		}(alertChan)
 	}
-	var alerted bool
-	for {
-		a := <-alertChan
-		err := a.Handle(cfg.Notifiers, &alerted)
-		if err != nil {
-			return
-		}
-		log.Println(alerted)
-	}
+	<-exit
 }
 
 func checkNetwork(network config.Network, alertChan chan<- alert.Alert) {
@@ -73,6 +73,7 @@ func checkNetwork(network config.Network, alertChan chan<- alert.Alert) {
 		chainId, height, err = rpc.GetLastestHeight(client)
 		if err != nil {
 			log.Println(err)
+			alertChan <- alert.Alert{AlertType: alert.RpcError, Message: "no rpcs available for " + network.ChainId}
 			return
 		}
 		if chainId != network.ChainId {
