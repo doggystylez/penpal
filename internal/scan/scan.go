@@ -16,26 +16,26 @@ const signThreshold = 0.95
 func Monitor(cfg config.Config) {
 	exit := make(chan bool)
 	for _, network := range cfg.Networks {
+		var alerted bool
 		alertChan := make(chan alert.Alert)
 		go func(n config.Network, aChan chan<- alert.Alert) {
-			var alerted bool
-			for {
-				checkNetwork(n, aChan, &alerted)
-				time.Sleep(time.Duration(n.Interval) * time.Minute)
-			}
-
+			scanNetwork(n, aChan, &alerted)
 		}(network, alertChan)
-		go func(aChan <-chan alert.Alert) {
-			for {
-				a := <-aChan
-				a.Handle(cfg.Notifiers)
-			}
-		}(alertChan)
+		go func(a <-chan alert.Alert, b config.Notifiers) {
+			alert.Watch(a, b)
+		}(alertChan, cfg.Notifiers)
 	}
 	<-exit
 }
 
-func checkNetwork(network config.Network, alertChan chan<- alert.Alert, alerted *bool) {
+func scanNetwork(network config.Network, alertChan chan<- alert.Alert, alerted *bool) {
+	for {
+		alertChan <- checkNetwork(network, alerted)
+		time.Sleep(time.Duration(network.Interval) * time.Minute)
+	}
+}
+
+func checkNetwork(network config.Network, alerted *bool) alert.Alert {
 	var (
 		chainId string
 		height  string
@@ -49,8 +49,7 @@ func checkNetwork(network config.Network, alertChan chan<- alert.Alert, alerted 
 			var nRpcs []string
 			if len(rpcs) == 0 {
 				*alerted = true
-				alertChan <- alert.NoRpc(network.ChainId)
-				return
+				return alert.NoRpc(network.ChainId)
 			} else {
 				i = rand.Intn(len(rpcs))
 				for _, r := range rpcs {
@@ -63,6 +62,7 @@ func checkNetwork(network config.Network, alertChan chan<- alert.Alert, alerted 
 				chainId, height, err = rpc.GetLastestHeight(client)
 				if err != nil {
 					log.Println(err)
+					break
 				}
 				if chainId == network.ChainId {
 					break
@@ -73,22 +73,17 @@ func checkNetwork(network config.Network, alertChan chan<- alert.Alert, alerted 
 		client.Url = network.Rpcs[0]
 		chainId, height, err = rpc.GetLastestHeight(client)
 		if err != nil {
-			log.Println(err)
+			log.Println(err, "here")
 			*alerted = true
-			alertChan <- alert.NoRpc(network.ChainId)
-			return
+			return alert.NoRpc(network.ChainId)
 		}
 		if chainId != network.ChainId {
 			*alerted = true
-			alertChan <- alert.NoRpc(network.ChainId)
-			return
+			return alert.NoRpc(network.ChainId)
 		}
 	}
-	heightInt, err := strconv.Atoi(height)
-	if err != nil {
-		return
-	}
-	alertChan <- backCheck(client, network, heightInt, alerted)
+	heightInt, _ := strconv.Atoi(height)
+	return backCheck(client, network, heightInt, alerted)
 
 }
 

@@ -58,6 +58,9 @@ func (c Config) validate() string {
 	if c.Notifiers.Telegram.Key != "" && c.Notifiers.Telegram.Chat == "" {
 		return "telegram chat id missing"
 	}
+	if c.Notifiers.Telegram.Key == "" && c.Notifiers.Discord.Webhook == "" {
+		return "telegram or discord notifier must be configured"
+	}
 	return ""
 }
 
@@ -128,7 +131,7 @@ func new(file string) (err error) {
 			Discord: struct {
 				Webhook string `json:"webhook"`
 			}{
-				Webhook: "webhook",
+				Webhook: "webhook_url",
 			},
 		},
 	})

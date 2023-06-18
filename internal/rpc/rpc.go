@@ -45,7 +45,7 @@ func getByUrlAndUnmarshall(client *http.Client, url string, data interface{}) (e
 	defer func() {
 		err = resp.Body.Close()
 		if err != nil {
-			panic(err)
+			return
 		}
 	}()
 	body, err := io.ReadAll(resp.Body)

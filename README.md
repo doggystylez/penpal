@@ -39,6 +39,9 @@ config (generated on first run):
     "telegram": {
       "key": "api_key"
       "chat": "chat_id"
+    },
+    "discord": {
+        "webhook": "webhook_url"
     }
   }
 }
