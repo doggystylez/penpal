@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/doggystylez/penpal/alert"
-	"github.com/doggystylez/penpal/config"
-	"github.com/doggystylez/penpal/rpc"
+	"github.com/doggystylez/penpal/internal/alert"
+	"github.com/doggystylez/penpal/internal/config"
+	"github.com/doggystylez/penpal/internal/rpc"
 )
 
 const signThreshold = 0.95
@@ -18,24 +18,24 @@ func Monitor(cfg config.Config) {
 	for _, network := range cfg.Networks {
 		alertChan := make(chan alert.Alert)
 		go func(n config.Network, aChan chan<- alert.Alert) {
+			var alerted bool
 			for {
-				checkNetwork(n, aChan)
+				checkNetwork(n, aChan, &alerted)
 				time.Sleep(time.Duration(n.Interval) * time.Minute)
 			}
 
 		}(network, alertChan)
 		go func(aChan <-chan alert.Alert) {
-			var alerted bool
 			for {
 				a := <-aChan
-				a.Handle(cfg.Notifiers, &alerted)
+				a.Handle(cfg.Notifiers)
 			}
 		}(alertChan)
 	}
 	<-exit
 }
 
-func checkNetwork(network config.Network, alertChan chan<- alert.Alert) {
+func checkNetwork(network config.Network, alertChan chan<- alert.Alert, alerted *bool) {
 	var (
 		chainId string
 		height  string
@@ -48,7 +48,8 @@ func checkNetwork(network config.Network, alertChan chan<- alert.Alert) {
 			var i int
 			var nRpcs []string
 			if len(rpcs) == 0 {
-				alertChan <- alert.Alert{AlertType: alert.RpcError, Message: "no rpcs available for " + network.ChainId}
+				*alerted = true
+				alertChan <- alert.NoRpc(network.ChainId)
 				return
 			} else {
 				i = rand.Intn(len(rpcs))
@@ -73,11 +74,13 @@ func checkNetwork(network config.Network, alertChan chan<- alert.Alert) {
 		chainId, height, err = rpc.GetLastestHeight(client)
 		if err != nil {
 			log.Println(err)
-			alertChan <- alert.Alert{AlertType: alert.RpcError, Message: "no rpcs available for " + network.ChainId}
+			*alerted = true
+			alertChan <- alert.NoRpc(network.ChainId)
 			return
 		}
 		if chainId != network.ChainId {
-			alertChan <- alert.Alert{AlertType: alert.RpcError, Message: "no rpcs available for " + network.ChainId}
+			*alerted = true
+			alertChan <- alert.NoRpc(network.ChainId)
 			return
 		}
 	}
@@ -85,10 +88,11 @@ func checkNetwork(network config.Network, alertChan chan<- alert.Alert) {
 	if err != nil {
 		return
 	}
-	alertChan <- backCheck(client, network, heightInt)
+	alertChan <- backCheck(client, network, heightInt, alerted)
+
 }
 
-func backCheck(client rpc.Client, cfg config.Network, height int) (a alert.Alert) {
+func backCheck(client rpc.Client, cfg config.Network, height int, alerted *bool) alert.Alert {
 	var (
 		signed    int
 		rpcErrors int
@@ -98,24 +102,25 @@ func backCheck(client rpc.Client, cfg config.Network, height int) (a alert.Alert
 		if err != nil || block.Error != nil {
 			log.Println(err, block.Error)
 			rpcErrors++
+			cfg.BackCheck--
 			continue
-		}
-		if rpcErrors > cfg.BackCheck/2 {
-			a = alert.Alert{AlertType: alert.RpcError, Message: "rpc " + client.Url + " is down"}
-			return
 		}
 		if checkSig(cfg.Address, block) {
 			signed++
 		}
 	}
-	if float64(signed)/float64(cfg.BackCheck) < signThreshold {
-		a.AlertType = alert.Missed
-		a.Message = "missed " + strconv.Itoa(cfg.BackCheck-signed) + " blocks on " + cfg.ChainId
+	if rpcErrors > cfg.BackCheck {
+		*alerted = true
+		return alert.RpcDown(client.Url)
+	} else if float64(signed)/float64(cfg.BackCheck) < signThreshold {
+		*alerted = true
+		return alert.Missed((cfg.BackCheck - signed), cfg.BackCheck, cfg.ChainId)
+	} else if *alerted {
+		*alerted = false
+		return alert.Cleared(signed, cfg.BackCheck, cfg.ChainId)
 	} else {
-		a.AlertType = alert.None
-		a.Message = "found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed blocks on " + cfg.ChainId
+		return alert.Nil(signed, cfg.BackCheck, cfg.ChainId)
 	}
-	return
 }
 
 func checkSig(address string, block rpc.Block) bool {

@@ -4,8 +4,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/doggystylez/penpal/config"
-	"github.com/doggystylez/penpal/scan"
+	"github.com/doggystylez/penpal/internal/config"
+	"github.com/doggystylez/penpal/internal/scan"
 )
 
 func main() {
