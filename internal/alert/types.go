@@ -1,8 +1,8 @@
 package alert
 
-import "strconv"
-
-type AlertType int
+import (
+	"strconv"
+)
 
 const (
 	None AlertType = iota
@@ -13,37 +13,55 @@ const (
 	Unknown
 )
 
-type Alert struct {
-	AlertType AlertType
-	Message   string
+type (
+	AlertType int
+
+	Alert struct {
+		AlertType AlertType
+		Message   string
+	}
+
+	notification struct {
+		Type    string
+		Auth    string
+		Content interface{}
+	}
+
+	telegramMessage struct {
+		Chat string `json:"chat_id,omitempty"`
+		Text string `json:"text,omitempty"`
+	}
+
+	discordMessage struct {
+		Username string `json:"username"`
+		Content  string `json:"content"`
+	}
+)
+
+func telegramNoti(key, chat, message string) notification {
+	return notification{Type: "telegram", Auth: "https://api.telegram.org/bot" + key + "/sendMessage", Content: telegramMessage{Chat: chat, Text: message}}
 }
 
-type TelegramMessage struct {
-	Chat string `json:"chat_id,omitempty"`
-	Text string `json:"text,omitempty"`
+func discordNoti(url, message string) notification {
+	return notification{Type: "discord", Auth: url, Content: discordMessage{Username: "penpal", Content: message}}
 }
 
-func Nil(signed int, check int, chain string) (a Alert) {
-	a.AlertType, a.Message = 0, "found "+strconv.Itoa(signed)+" of "+strconv.Itoa(check)+" signed blocks on "+chain
-	return
+func Nil(signed int, check int, chain string) Alert {
+	return Alert{AlertType: 0, Message: "found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
 }
 
-func Cleared(signed int, check int, chain string) (a Alert) {
-	a.AlertType, a.Message = 1, "😌 alert resolved. found "+strconv.Itoa(signed)+" of "+strconv.Itoa(check)+" signed blocks on "+chain
-	return
+func Cleared(signed int, check int, chain string) Alert {
+	return Alert{AlertType: 1, Message: "😌 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
 }
 
-func NoRpc(chain string) (a Alert) {
-	a.AlertType, a.Message = 2, "📡 no rpcs available for "+chain
-	return
+func NoRpc(chain string) Alert {
+	return Alert{AlertType: 2, Message: "📡 no rpcs available for " + chain}
 }
 
-func RpcDown(url string) (a Alert) {
-	a.AlertType, a.Message = 2, "📡 rpc "+url+" is down or malfunctioning"
-	return
+func RpcDown(url string) Alert {
+	return Alert{AlertType: 2, Message: "📡 rpc " + url + " is down or malfunctioning"}
 }
 
-func Missed(missed int, check int, chain string) (a Alert) {
-	a.AlertType, a.Message = 3, "❌ missed "+strconv.Itoa(missed)+" of last "+strconv.Itoa(check)+" blocks on "+chain
-	return
+func Missed(missed int, check int, chain string) Alert {
+	return Alert{AlertType: 3, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks on " + chain}
 }

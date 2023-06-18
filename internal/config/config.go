@@ -2,7 +2,7 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -11,24 +11,23 @@ import (
 func Load(path string) (config Config, err error) {
 	configFile := filepath.Join(filepath.Clean(path), "config.json")
 	if _, err = os.Stat(configFile); os.IsNotExist(err) {
-		fmt.Println("config file does not exist - generating a new one")
 		err = new(configFile)
 		if err != nil {
 			panic(err)
 		}
-		os.Exit(0)
+		err = errors.New("config file does not exist - generating a new one")
+		return
 	}
 	data, err := os.ReadFile(configFile)
 	if err != nil {
-		return
+		panic(err)
 	}
 	err = json.Unmarshal(data, &config)
 	warn := config.validate()
 	if warn != "" {
-		fmt.Println("check config -", warn)
-		os.Exit(1)
+		err = errors.New("check config - " + warn)
+		return
 	}
-
 	return
 }
 
@@ -56,10 +55,7 @@ func (c Config) validate() string {
 			}
 		}
 	}
-	if c.Notifiers.Telegram.Key == "" {
-		return "telegram key missing"
-	}
-	if c.Notifiers.Telegram.Chat == "" {
+	if c.Notifiers.Telegram.Key != "" && c.Notifiers.Telegram.Chat == "" {
 		return "telegram chat id missing"
 	}
 	return ""
@@ -83,6 +79,9 @@ func new(file string) (err error) {
 				Key  string `json:"key"`
 				Chat string `json:"chat_id,omitempty"`
 			} `json:"telegram"`
+			Discord struct {
+				Webhook string `json:"webhook"`
+			} `json:"discord"`
 		} `json:"notifiers"`
 	}{
 		Networks: []struct {
@@ -115,6 +114,9 @@ func new(file string) (err error) {
 				Key  string `json:"key"`
 				Chat string `json:"chat_id,omitempty"`
 			} `json:"telegram"`
+			Discord struct {
+				Webhook string `json:"webhook"`
+			} `json:"discord"`
 		}{
 			Telegram: struct {
 				Key  string `json:"key"`
@@ -122,6 +124,11 @@ func new(file string) (err error) {
 			}{
 				Key:  "api_key",
 				Chat: "chat_id",
+			},
+			Discord: struct {
+				Webhook string `json:"webhook"`
+			}{
+				Webhook: "webhook",
 			},
 		},
 	})

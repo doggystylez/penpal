@@ -19,5 +19,8 @@ type (
 			Key  string `json:"key,omitempty"`
 			Chat string `json:"chat_id,omitempty"`
 		} `json:"telegram,omitempty"`
+		Discord struct {
+			Webhook string `json:"webhook"`
+		} `json:"discord"`
 	}
 )

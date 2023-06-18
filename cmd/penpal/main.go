@@ -19,7 +19,8 @@ func main() {
 	}
 	cfg, err := config.Load(filepath)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
 	scan.Monitor(cfg)
 }
