@@ -43,7 +43,6 @@ func (a Alert) telegramAlert(key, chat string, alerted *bool) {
 		resp, err := client.Do(req)
 		if err != nil {
 			log.Println(err)
-			continue
 		}
 		err = req.Body.Close()
 		if err != nil {

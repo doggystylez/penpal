@@ -85,35 +85,35 @@ func checkNetwork(network config.Network, alertChan chan<- alert.Alert) {
 	if err != nil {
 		return
 	}
-	signed, err := backCheck(client, network.Address, network.BackCheck, heightInt)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	alertChan <- checkSigning(signed, network.BackCheck, network.ChainId)
+	alertChan <- backCheck(client, network, heightInt)
 }
 
-func checkSigning(signed int, check int, chainId string) (a alert.Alert) {
-	if float64(signed)/float64(check) < signThreshold {
-		a.AlertType = alert.Missed
-		a.Message = "missed " + strconv.Itoa(check-signed) + " blocks on " + chainId
-	} else {
-		a.AlertType = alert.None
-		a.Message = "found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chainId
-	}
-	return
-}
-
-func backCheck(client rpc.Client, address string, checkBack int, height int) (signed int, err error) {
-	for checkHeight := height - checkBack + 1; checkHeight <= height; checkHeight++ {
-		var block rpc.Block
-		block, err = rpc.GetBlockFromHeight(client, strconv.Itoa(checkHeight))
-		if err != nil {
+func backCheck(client rpc.Client, cfg config.Network, height int) (a alert.Alert) {
+	var (
+		signed    int
+		rpcErrors int
+	)
+	for checkHeight := height - cfg.BackCheck + 1; checkHeight <= height; checkHeight++ {
+		block, err := rpc.GetBlockFromHeight(client, strconv.Itoa(checkHeight))
+		if err != nil || block.Error != nil {
+			log.Println(err, block.Error)
+			rpcErrors++
+			continue
+		}
+		if rpcErrors > cfg.BackCheck/2 {
+			a = alert.Alert{AlertType: alert.RpcError, Message: "rpc " + client.Url + " is down"}
 			return
 		}
-		if checkSig(address, block) {
+		if checkSig(cfg.Address, block) {
 			signed++
 		}
+	}
+	if float64(signed)/float64(cfg.BackCheck) < signThreshold {
+		a.AlertType = alert.Missed
+		a.Message = "missed " + strconv.Itoa(cfg.BackCheck-signed) + " blocks on " + cfg.ChainId
+	} else {
+		a.AlertType = alert.None
+		a.Message = "found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed blocks on " + cfg.ChainId
 	}
 	return
 }
