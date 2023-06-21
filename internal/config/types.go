@@ -4,6 +4,7 @@ type (
 	Config struct {
 		Networks  []Network `json:"networks,omitempty"`
 		Notifiers Notifiers `json:"notifiers,omitempty"`
+		Health    Health    `json:"health,omitempty"`
 	}
 	Network struct {
 		Name      string   `json:"name,omitempty"`
@@ -22,5 +23,11 @@ type (
 		Discord struct {
 			Webhook string `json:"webhook"`
 		} `json:"discord"`
+	}
+
+	Health struct {
+		Interval int      `json:"interval,omitempty"`
+		Port     string   `json:"port,omitempty"`
+		Nodes    []string `json:"nodes,omitempty"`
 	}
 )

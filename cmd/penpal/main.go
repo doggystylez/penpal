@@ -10,7 +10,7 @@ import (
 
 func main() {
 	var filepath string
-	flag.StringVar(&filepath, "config", "", "path to config (shorthand)")
+	flag.StringVar(&filepath, "config", "", "path to config")
 	flag.StringVar(&filepath, "c", "", "path to config (shorthand)")
 	flag.Parse()
 	if filepath == "" {

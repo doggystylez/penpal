@@ -43,6 +43,13 @@ config (generated on first run):
     "discord": {
         "webhook": "webhook_url"
     }
+  },
+  "health": {
+    "interval": 1                     # health check interval in hours
+    "port": "8080"                    # health listen port
+    "nodes": [
+      "http://192.168.1.1:8080"       # addresses to run health checks on
+    ]
   }
 }
 ```

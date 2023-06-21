@@ -32,6 +32,12 @@ func GetBlockFromHeight(client Client, height string) (responseData Block, err e
 	return
 }
 
+func GetLatestBlockTime(client Client) (time.Time, error) {
+	var responseData Block
+	err := getByUrlAndUnmarshall(client.Client, client.Url+"/block", &responseData)
+	return responseData.Result.Block.Header.Time, err
+}
+
 func getByUrlAndUnmarshall(client *http.Client, url string, data interface{}) (err error) {
 	r := &strings.Reader{}
 	req, err := http.NewRequestWithContext(context.Background(), "GET", url, r)

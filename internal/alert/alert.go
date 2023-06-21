@@ -26,17 +26,17 @@ func Watch(alertChan <-chan Alert, notifiers config.Notifiers) {
 		}
 		if a.AlertType != None {
 			for _, n := range notifications {
-				go func(b notification, c string) {
+				go func(b notification) {
 					for i := 0; i < retries; i++ {
 						err := b.send()
 						if err == nil {
-							log.Println("sent alert to", b.Type, c)
+							log.Println("sent alert to", b.Type, a.Message)
 							return
 						}
 						time.Sleep(1 * time.Second)
 					}
-					log.Println("error sending message", c, "to", b.Type, "after", retries, "tries")
-				}(n, a.Message)
+					log.Println("error sending message", a.Message, "to", b.Type, "after", retries, "tries")
+				}(n)
 			}
 		} else {
 			log.Println(a.Message)
@@ -58,12 +58,9 @@ func (n notification) send() (err error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
+	defer req.Body.Close()
 	if err != nil {
 		log.Println(err)
-		return
-	}
-	err = req.Body.Close()
-	if err != nil {
 		return
 	}
 	if resp.StatusCode > 299 || resp.StatusCode < 200 {

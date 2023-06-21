@@ -14,17 +14,15 @@ import (
 const signThreshold = 0.95
 
 func Monitor(cfg config.Config) {
+	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
 	for _, network := range cfg.Networks {
 		var alerted bool
-		alertChan := make(chan alert.Alert)
-		go func(n config.Network, aChan chan<- alert.Alert) {
-			scanNetwork(n, aChan, &alerted)
-		}(network, alertChan)
-		go func(a <-chan alert.Alert, b config.Notifiers) {
-			alert.Watch(a, b)
-		}(alertChan, cfg.Notifiers)
+		go scanNetwork(network, alertChan, &alerted)
+		go alert.Watch(alertChan, cfg.Notifiers)
 	}
+	go healthServer(cfg)
+	go healthCheck(cfg.Health.Interval, cfg.Health.Nodes, alertChan)
 	<-exit
 }
 

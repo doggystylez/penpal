@@ -10,6 +10,7 @@ const (
 	RpcError
 	Miss
 	Jail
+	Health
 	Unknown
 )
 
@@ -64,4 +65,12 @@ func RpcDown(url string) Alert {
 
 func Missed(missed int, check int, chain string) Alert {
 	return Alert{AlertType: 3, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks on " + chain}
+}
+
+func Healthy(address string) Alert {
+	return Alert{AlertType: 5, Message: "🤝 penpal at " + address + " healthy"}
+}
+
+func Unhealthy(address string) Alert {
+	return Alert{AlertType: 5, Message: "🤢 penpal at " + address + " unhealthy"}
 }

@@ -86,6 +86,11 @@ func new(file string) (err error) {
 				Webhook string `json:"webhook"`
 			} `json:"discord"`
 		} `json:"notifiers"`
+		Health struct {
+			Interval int      `json:"interval,omitempty"`
+			Port     string   `json:"port,omitempty"`
+			Nodes    []string `json:"nodes,omitempty"`
+		} `json:"health,omitempty"`
 	}{
 		Networks: []struct {
 			Name      string   `json:"name"`
@@ -134,6 +139,14 @@ func new(file string) (err error) {
 				Webhook: "webhook_url",
 			},
 		},
-	})
+		Health: struct {
+			Interval int      `json:"interval,omitempty"`
+			Port     string   `json:"port,omitempty"`
+			Nodes    []string `json:"nodes,omitempty"`
+		}{
+			Interval: 1,
+			Port:     "8080",
+			Nodes:    []string{"http://192.168.1.1:8080"},
+		}})
 	return
 }

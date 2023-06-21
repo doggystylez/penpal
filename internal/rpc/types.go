@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"net/http"
+	"time"
 )
 
 type (
@@ -15,8 +16,9 @@ type (
 		Result struct {
 			Block struct {
 				Header struct {
-					ChainID string `json:"chain_id"`
-					Height  string `json:"height"`
+					ChainID string    `json:"chain_id"`
+					Height  string    `json:"height"`
+					Time    time.Time `json:"time"`
 				} `json:"header"`
 				LastCommit struct {
 					Signatures []struct {
