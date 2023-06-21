@@ -17,12 +17,15 @@ func Monitor(cfg config.Config) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
 	for _, network := range cfg.Networks {
-		var alerted bool
-		go scanNetwork(network, alertChan, &alerted)
+		var scanAlert bool
+		go scanNetwork(network, alertChan, &scanAlert)
 		go alert.Watch(alertChan, cfg.Notifiers)
 	}
-	go healthServer(cfg)
-	go healthCheck(cfg.Health.Interval, cfg.Health.Nodes, alertChan)
+	if cfg.Health.Interval != 0 {
+		var healthAlert bool
+		go healthServer(cfg)
+		go healthCheck(cfg.Health, alertChan, &healthAlert)
+	}
 	<-exit
 }
 

@@ -8,19 +8,15 @@ import (
 	"path/filepath"
 )
 
-func Load(path string) (config Config, err error) {
-	configFile := filepath.Join(filepath.Clean(path), "config.json")
+func Load(file string) (config Config, err error) {
+	configFile := filepath.Clean(file)
 	if _, err = os.Stat(configFile); os.IsNotExist(err) {
-		err = new(configFile)
-		if err != nil {
-			panic(err)
-		}
-		err = errors.New("config file does not exist - generating a new one")
+		err = errors.New("config file does not exist. use `-init` to generate a new one")
 		return
 	}
 	data, err := os.ReadFile(configFile)
 	if err != nil {
-		panic(err)
+		return
 	}
 	err = json.Unmarshal(data, &config)
 	warn := config.validate()
@@ -64,8 +60,18 @@ func (c Config) validate() string {
 	return ""
 }
 
-func new(file string) (err error) {
-	configFile, err := os.Create(file)
+func New(file string) (err error) {
+	_, err = os.Stat(file)
+	if err == nil {
+		err = errors.New("config file already exists at " + file)
+		return
+	} else if !os.IsNotExist(err) {
+		return
+	}
+	configFile, err := os.Create(filepath.Clean(file))
+	if err != nil {
+		return
+	}
 	encoder := json.NewEncoder(configFile)
 	encoder.SetIndent("", "  ")
 	err = encoder.Encode(struct {
@@ -148,5 +154,8 @@ func new(file string) (err error) {
 			Port:     "8080",
 			Nodes:    []string{"http://192.168.1.1:8080"},
 		}})
+	if err == nil {
+		err = errors.New("generated a new config at " + file)
+	}
 	return
 }

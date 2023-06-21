@@ -2,12 +2,20 @@
 
 lightweight tendermint signing monitor
 
-usage:
+## usage
+generate config
 ```
-penpal -c <path to config.json>
+penpal -c <path to config file> -init
+```
+run
+```
+penpal -c <path to config file>
 ```
 
-config (generated on first run):
+## health check
+multiple instances can be run to monitor each other and alert if any instance is malfunctioning or unavailable. currently, this uses a http server which listens on the designated port with no authentication other than checking the header, so use firewall rules to only allow access to this port from the other instances
+
+## config (JSON)
 ```
 {
   "networks": [
@@ -48,7 +56,7 @@ config (generated on first run):
     "interval": 1                     # health check interval in hours
     "port": "8080"                    # health listen port
     "nodes": [
-      "http://192.168.1.1:8080"       # addresses to run health checks on
+      "http://192.168.1.1:8080"       # addresses of other instances to run health checks on
     ]
   }
 }

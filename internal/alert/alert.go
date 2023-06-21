@@ -7,6 +7,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/doggystylez/penpal/internal/config"
@@ -68,4 +69,44 @@ func (n notification) send() (err error) {
 	}
 	return
 
+}
+
+func telegramNoti(key, chat, message string) notification {
+	return notification{Type: "telegram", Auth: "https://api.telegram.org/bot" + key + "/sendMessage", Content: telegramMessage{Chat: chat, Text: message}}
+}
+
+func discordNoti(url, message string) notification {
+	return notification{Type: "discord", Auth: url, Content: discordMessage{Username: "penpal", Content: message}}
+}
+
+func Nil(signed int, check int, chain string) Alert {
+	return Alert{AlertType: 0, Message: "found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
+}
+
+func Cleared(signed int, check int, chain string) Alert {
+	return Alert{AlertType: 1, Message: "😌 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
+}
+
+func NoRpc(chain string) Alert {
+	return Alert{AlertType: 2, Message: "📡 no rpcs available for " + chain}
+}
+
+func RpcDown(url string) Alert {
+	return Alert{AlertType: 2, Message: "📡 rpc " + url + " is down or malfunctioning"}
+}
+
+func Missed(missed int, check int, chain string) Alert {
+	return Alert{AlertType: 3, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks on " + chain}
+}
+
+func Healthy(interval int, address string) Alert {
+	return Alert{AlertType: 5, Message: "🤝 penpal at " + address + " healthy. next check at " + hourInterval(interval)}
+}
+
+func Unhealthy(interval int, address string) Alert {
+	return Alert{AlertType: 5, Message: "🤢 penpal at " + address + " unhealthy. next check at " + hourInterval(interval)}
+}
+
+func hourInterval(i int) string {
+	return time.Now().UTC().Add(time.Duration(i) * time.Hour).Format(time.RFC3339)
 }

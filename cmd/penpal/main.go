@@ -3,21 +3,33 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/doggystylez/penpal/internal/config"
 	"github.com/doggystylez/penpal/internal/scan"
 )
 
 func main() {
-	var filepath string
-	flag.StringVar(&filepath, "config", "", "path to config")
-	flag.StringVar(&filepath, "c", "", "path to config (shorthand)")
+	var file string
+	var init bool
+	flag.BoolVar(&init, "init", false, "initialize new config file")
+	flag.StringVar(&file, "config", "./config.json", "path to config")
+	flag.StringVar(&file, "c", "./config.json", "path to config [shorthand]	")
 	flag.Parse()
-	if filepath == "" {
-		fmt.Println("specify a config file using the -config/-c flag")
+	if !strings.HasPrefix(os.Args[1], "-") {
+		fmt.Println("invalid arg", os.Args[1])
+		flag.Usage()
 		return
 	}
-	cfg, err := config.Load(filepath)
+	if init {
+		if err := config.New(file); err != nil {
+			fmt.Println(err)
+		}
+
+		return
+	}
+	cfg, err := config.Load(file)
 	if err != nil {
 		fmt.Println(err)
 		return
