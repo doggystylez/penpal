@@ -1,7 +1,6 @@
 package scan
 
 import (
-	"log"
 	"math/rand"
 	"strconv"
 	"time"
@@ -16,39 +15,46 @@ const signThreshold = 0.95
 func Monitor(cfg config.Config) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
+	client := rpc.New()
 	for _, network := range cfg.Networks {
-		var scanAlert bool
-		go scanNetwork(network, alertChan, &scanAlert)
+		go scanNetwork(client, network, alertChan)
 		go alert.Watch(alertChan, cfg.Notifiers)
 	}
 	if cfg.Health.Interval != 0 {
-		var healthAlert bool
-		go healthServer(cfg)
-		go healthCheck(cfg.Health, alertChan, &healthAlert)
+		go healthServer(client, cfg)
+		go healthCheck(client.Client, cfg.Health, alertChan)
 	}
 	<-exit
 }
 
-func scanNetwork(network config.Network, alertChan chan<- alert.Alert, alerted *bool) {
+func scanNetwork(client rpc.Client, network config.Network, alertChan chan<- alert.Alert) {
+	var (
+		interval int
+		alerted  bool
+	)
 	for {
-		alertChan <- checkNetwork(network, alerted)
-		time.Sleep(time.Duration(network.Interval) * time.Minute)
+		alertChan <- checkNetwork(client, network, &alerted)
+		if alerted && network.Interval > 2 {
+			interval = 2
+		} else {
+			interval = network.Interval
+		}
+		time.Sleep(time.Duration(interval) * time.Minute)
 	}
 }
 
-func checkNetwork(network config.Network, alerted *bool) alert.Alert {
+func checkNetwork(client rpc.Client, network config.Network, alerted *bool) alert.Alert {
 	var (
 		chainId string
 		height  string
 		err     error
 	)
-	client := rpc.New()
 	rpcs := network.Rpcs
 	if len(rpcs) > 1 {
 		for {
 			var i int
 			var nRpcs []string
-			if len(rpcs) == 0 {
+			if len(rpcs) == 0 && !*alerted {
 				*alerted = true
 				return alert.NoRpc(network.ChainId)
 			} else {
@@ -62,7 +68,6 @@ func checkNetwork(network config.Network, alerted *bool) alert.Alert {
 				rpcs = nRpcs
 				chainId, height, err = rpc.GetLastestHeight(client)
 				if err != nil {
-					log.Println(err)
 					break
 				}
 				if chainId == network.ChainId {
@@ -73,12 +78,11 @@ func checkNetwork(network config.Network, alerted *bool) alert.Alert {
 	} else if len(rpcs) == 1 {
 		client.Url = network.Rpcs[0]
 		chainId, height, err = rpc.GetLastestHeight(client)
-		if err != nil {
-			log.Println(err, "here")
+		if err != nil && !*alerted {
 			*alerted = true
 			return alert.NoRpc(network.ChainId)
 		}
-		if chainId != network.ChainId {
+		if chainId != network.ChainId && !*alerted {
 			*alerted = true
 			return alert.NoRpc(network.ChainId)
 		}
@@ -96,7 +100,6 @@ func backCheck(client rpc.Client, cfg config.Network, height int, alerted *bool)
 	for checkHeight := height - cfg.BackCheck + 1; checkHeight <= height; checkHeight++ {
 		block, err := rpc.GetBlockFromHeight(client, strconv.Itoa(checkHeight))
 		if err != nil || block.Error != nil {
-			log.Println(err, block.Error)
 			rpcErrors++
 			cfg.BackCheck--
 			continue
@@ -105,7 +108,7 @@ func backCheck(client rpc.Client, cfg config.Network, height int, alerted *bool)
 			signed++
 		}
 	}
-	if rpcErrors > cfg.BackCheck {
+	if rpcErrors > cfg.BackCheck && !*alerted {
 		*alerted = true
 		return alert.RpcDown(client.Url)
 	} else if float64(signed)/float64(cfg.BackCheck) < signThreshold {

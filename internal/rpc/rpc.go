@@ -12,7 +12,7 @@ import (
 func New() (client Client) {
 	return Client{
 		Client: &http.Client{
-			Timeout: time.Second * 2,
+			Timeout: time.Second * 5,
 		},
 	}
 }
@@ -23,28 +23,31 @@ func GetLastestHeight(client Client) (chainID string, height string, err error) 
 }
 
 func getLatestBlock(client Client) (responseData Block, err error) {
-	err = getByUrlAndUnmarshall(client.Client, client.Url+"/block", &responseData)
+	client.Url = client.Url + "/block"
+	err = getByUrlAndUnmarshall(client, &responseData)
 	return
 }
 
 func GetBlockFromHeight(client Client, height string) (responseData Block, err error) {
-	err = getByUrlAndUnmarshall(client.Client, client.Url+"/block?height="+height, &responseData)
+	client.Url = client.Url + "/block?height=" + height
+	err = getByUrlAndUnmarshall(client, &responseData)
 	return
 }
 
 func GetLatestBlockTime(client Client) (time.Time, error) {
 	var responseData Block
-	err := getByUrlAndUnmarshall(client.Client, client.Url+"/block", &responseData)
+	client.Url = client.Url + "/block"
+	err := getByUrlAndUnmarshall(client, &responseData)
 	return responseData.Result.Block.Header.Time, err
 }
 
-func getByUrlAndUnmarshall(client *http.Client, url string, data interface{}) (err error) {
+func getByUrlAndUnmarshall(client Client, data interface{}) (err error) {
 	r := &strings.Reader{}
-	req, err := http.NewRequestWithContext(context.Background(), "GET", url, r)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", client.Url, r)
 	if err != nil {
 		return
 	}
-	resp, err := client.Do(req)
+	resp, err := client.Client.Do(req)
 	if err != nil {
 		return
 	}

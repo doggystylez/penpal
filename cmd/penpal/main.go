@@ -11,13 +11,16 @@ import (
 )
 
 func main() {
-	var file string
-	var init bool
+	var (
+		file string
+		init bool
+	)
 	flag.BoolVar(&init, "init", false, "initialize new config file")
 	flag.StringVar(&file, "config", "./config.json", "path to config")
-	flag.StringVar(&file, "c", "./config.json", "path to config [shorthand]	")
+	flag.StringVar(&file, "c", "./config.json", "path to config [shorthand]")
 	flag.Parse()
-	if !strings.HasPrefix(os.Args[1], "-") {
+	args := os.Args
+	if len(args) > 1 && !strings.HasPrefix(args[1], "-") {
 		fmt.Println("invalid arg", os.Args[1])
 		flag.Usage()
 		return
@@ -26,7 +29,6 @@ func main() {
 		if err := config.New(file); err != nil {
 			fmt.Println(err)
 		}
-
 		return
 	}
 	cfg, err := config.Load(file)

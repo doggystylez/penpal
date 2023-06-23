@@ -99,14 +99,14 @@ func Missed(missed int, check int, chain string) Alert {
 	return Alert{AlertType: 3, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks on " + chain}
 }
 
-func Healthy(interval int, address string) Alert {
-	return Alert{AlertType: 5, Message: "🤝 penpal at " + address + " healthy. next check at " + hourInterval(interval)}
+func Healthy(interval time.Duration, address string) Alert {
+	return Alert{AlertType: 5, Message: "🤝 penpal at " + address + " healthy. next check at " + timeInterval(interval)}
 }
 
-func Unhealthy(interval int, address string) Alert {
-	return Alert{AlertType: 5, Message: "🤢 penpal at " + address + " unhealthy. next check at " + hourInterval(interval)}
+func Unhealthy(interval time.Duration, address string) Alert {
+	return Alert{AlertType: 5, Message: "🤢 penpal at " + address + " unhealthy. next check at " + timeInterval(interval)}
 }
 
-func hourInterval(i int) string {
-	return time.Now().UTC().Add(time.Duration(i) * time.Hour).Format(time.RFC3339)
+func timeInterval(d time.Duration) string {
+	return time.Now().UTC().Add(d).Format(time.RFC3339)
 }

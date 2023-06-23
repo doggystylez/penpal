@@ -9,47 +9,57 @@ import (
 
 	"github.com/doggystylez/penpal/internal/alert"
 	"github.com/doggystylez/penpal/internal/config"
+	"github.com/doggystylez/penpal/internal/rpc"
 )
 
-func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, alerted *bool) {
-	client := &http.Client{}
-	for {
-		for _, address := range cfg.Nodes {
-			request, err := http.NewRequestWithContext(context.Background(), "GET", address+"/health", nil)
-			if err != nil {
-				log.Println("health check failed:", err)
-				continue
-			}
-			request.Header.Set("agent", "penpal")
-			resp, err := client.Do(request)
-			if err != nil {
-				*alerted = true
-				log.Println("health check failed:", err)
-				alertChan <- alert.Unhealthy(cfg.Interval, address)
-			} else {
-				if resp.StatusCode != http.StatusOK {
-					*alerted = true
-					log.Println("health check for", address, "failed: status code", resp.StatusCode)
-					alertChan <- alert.Unhealthy(cfg.Interval, address)
-				} else {
-					log.Println("health check for", address, "succeeds")
-					if *alerted {
-						alertChan <- alert.Healthy(cfg.Interval, address)
-					}
+func healthCheck(client *http.Client, cfg config.Health, alertChan chan<- alert.Alert) {
+	for _, address := range cfg.Nodes {
+		go func(a string) {
+			var (
+				interval time.Duration
+				alerted  bool
+			)
+			for {
+				request, err := http.NewRequestWithContext(context.Background(), "GET", a+"/health", nil)
+				if err != nil {
+					log.Println("health check failed:", err)
+					panic(err)
 				}
-				_ = resp.Body.Close()
+				request.Header.Set("agent", "penpal")
+				resp, err := client.Do(request)
+				if err != nil {
+					alerted = true
+					log.Println("health check for", a, "failed:", err, "next check in two minutes")
+				} else {
+					if resp.StatusCode != http.StatusOK {
+						alerted = true
+						log.Println("health check for", a, "failed: status code", resp.StatusCode, "next check in two minutes")
+					} else {
+						log.Println("health check for", a, "succeeded. next check at", time.Now().UTC().Add(interval).Format(time.RFC3339))
+						interval = time.Duration(cfg.Interval) * time.Hour
+						if alerted {
+							alerted = false
+							alertChan <- alert.Healthy(interval, a)
+						}
+					}
+					_ = resp.Body.Close()
+				}
+				if alerted {
+					interval = 2 * time.Minute
+					alertChan <- alert.Unhealthy(interval, a)
+				}
+				time.Sleep(interval)
 			}
-		}
-		time.Sleep(time.Duration(cfg.Interval) * time.Hour)
+		}(address)
 	}
 }
 
-func healthServer(cfg config.Config) {
+func healthServer(client rpc.Client, cfg config.Config) {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("agent") == "penpal" {
-			var alerted bool
+			var b bool
 			i := rand.Intn(len(cfg.Networks))
-			a := checkNetwork(cfg.Networks[i], &alerted)
+			a := checkNetwork(client, cfg.Networks[i], &b)
 			if a.AlertType == 0 || a.AlertType == 1 || a.AlertType == 3 {
 				w.WriteHeader(http.StatusOK)
 				_, err := w.Write([]byte("OK"))
