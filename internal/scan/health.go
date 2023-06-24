@@ -9,10 +9,9 @@ import (
 
 	"github.com/doggystylez/penpal/internal/alert"
 	"github.com/doggystylez/penpal/internal/config"
-	"github.com/doggystylez/penpal/internal/rpc"
 )
 
-func healthCheck(client *http.Client, cfg config.Health, alertChan chan<- alert.Alert) {
+func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, client *http.Client) {
 	for _, address := range cfg.Nodes {
 		go func(a string) {
 			var (
@@ -54,12 +53,12 @@ func healthCheck(client *http.Client, cfg config.Health, alertChan chan<- alert.
 	}
 }
 
-func healthServer(client rpc.Client, cfg config.Config) {
+func healthServer(cfg config.Config, client *http.Client) {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("agent") == "penpal" {
 			var b bool
 			i := rand.Intn(len(cfg.Networks))
-			a := checkNetwork(client, cfg.Networks[i], &b)
+			a := checkNetwork(cfg.Networks[i], &b, client)
 			if a.AlertType == 0 || a.AlertType == 1 || a.AlertType == 3 {
 				w.WriteHeader(http.StatusOK)
 				_, err := w.Write([]byte("OK"))
@@ -83,7 +82,7 @@ func healthServer(client rpc.Client, cfg config.Config) {
 	})
 	server := &http.Server{
 		Addr:              ":" + cfg.Health.Port,
-		ReadHeaderTimeout: 3 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 	if err := server.ListenAndServe(); err != nil {
 		log.Println("http server failed", err)

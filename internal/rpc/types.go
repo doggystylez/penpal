@@ -1,16 +1,10 @@
 package rpc
 
 import (
-	"net/http"
 	"time"
 )
 
 type (
-	Client struct {
-		Client *http.Client
-		Url    string
-	}
-
 	Block struct {
 		Error  interface{} `json:"error"`
 		Result struct {

@@ -9,45 +9,34 @@ import (
 	"time"
 )
 
-func New() (client Client) {
-	return Client{
-		Client: &http.Client{
-			Timeout: time.Second * 5,
-		},
-	}
-}
-
-func GetLastestHeight(client Client) (chainID string, height string, err error) {
-	block, err := getLatestBlock(client)
+func GetLastestHeight(url string, client *http.Client) (chainID string, height string, err error) {
+	block, err := getLatestBlock(url, client)
 	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Height, err
 }
 
-func getLatestBlock(client Client) (responseData Block, err error) {
-	client.Url = client.Url + "/block"
-	err = getByUrlAndUnmarshall(client, &responseData)
+func getLatestBlock(url string, client *http.Client) (responseData Block, err error) {
+	err = getByUrlAndUnmarshall(&responseData, url+"/block", client)
 	return
 }
 
-func GetBlockFromHeight(client Client, height string) (responseData Block, err error) {
-	client.Url = client.Url + "/block?height=" + height
-	err = getByUrlAndUnmarshall(client, &responseData)
+func GetBlockFromHeight(height string, url string, client *http.Client) (responseData Block, err error) {
+	err = getByUrlAndUnmarshall(&responseData, url+"/block?height="+height, client)
 	return
 }
 
-func GetLatestBlockTime(client Client) (time.Time, error) {
+func GetLatestBlockTime(url string, client *http.Client) (time.Time, error) {
 	var responseData Block
-	client.Url = client.Url + "/block"
-	err := getByUrlAndUnmarshall(client, &responseData)
+	err := getByUrlAndUnmarshall(&responseData, url+"/block", client)
 	return responseData.Result.Block.Header.Time, err
 }
 
-func getByUrlAndUnmarshall(client Client, data interface{}) (err error) {
+func getByUrlAndUnmarshall(data interface{}, url string, client *http.Client) (err error) {
 	r := &strings.Reader{}
-	req, err := http.NewRequestWithContext(context.Background(), "GET", client.Url, r)
+	req, err := http.NewRequestWithContext(context.Background(), "GET", url, r)
 	if err != nil {
 		return
 	}
-	resp, err := client.Client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return
 	}

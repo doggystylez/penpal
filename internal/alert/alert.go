@@ -15,7 +15,7 @@ import (
 
 const retries = 3
 
-func Watch(alertChan <-chan Alert, notifiers config.Notifiers) {
+func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Client) {
 	for {
 		a := <-alertChan
 		var notifications []notification
@@ -29,7 +29,7 @@ func Watch(alertChan <-chan Alert, notifiers config.Notifiers) {
 			for _, n := range notifications {
 				go func(b notification) {
 					for i := 0; i < retries; i++ {
-						err := b.send()
+						err := b.send(client)
 						if err == nil {
 							log.Println("sent alert to", b.Type, a.Message)
 							return
@@ -45,13 +45,10 @@ func Watch(alertChan <-chan Alert, notifiers config.Notifiers) {
 	}
 }
 
-func (n notification) send() (err error) {
+func (n notification) send(client *http.Client) (err error) {
 	json, err := json.Marshal(n.Content)
 	if err != nil {
 		return
-	}
-	client := &http.Client{
-		Timeout: time.Second * 2,
 	}
 	req, err := http.NewRequestWithContext(context.Background(), "POST", n.Auth, bytes.NewBuffer(json))
 	if err != nil {
@@ -79,8 +76,8 @@ func discordNoti(url, message string) notification {
 	return notification{Type: "discord", Auth: url, Content: discordMessage{Username: "penpal", Content: message}}
 }
 
-func Nil(signed int, check int, chain string) Alert {
-	return Alert{AlertType: 0, Message: "found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
+func Nil(message string) Alert {
+	return Alert{AlertType: 0, Message: message}
 }
 
 func Cleared(signed int, check int, chain string) Alert {

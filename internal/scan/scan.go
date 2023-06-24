@@ -2,6 +2,7 @@ package scan
 
 import (
 	"math/rand"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -15,25 +16,27 @@ const signThreshold = 0.95
 func Monitor(cfg config.Config) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
-	client := rpc.New()
+	client := &http.Client{
+		Timeout: time.Second * 5,
+	}
 	for _, network := range cfg.Networks {
-		go scanNetwork(client, network, alertChan)
-		go alert.Watch(alertChan, cfg.Notifiers)
+		go scanNetwork(network, alertChan, client)
+		go alert.Watch(alertChan, cfg.Notifiers, client)
 	}
 	if cfg.Health.Interval != 0 {
-		go healthServer(client, cfg)
-		go healthCheck(client.Client, cfg.Health, alertChan)
+		go healthServer(cfg, client)
+		go healthCheck(cfg.Health, alertChan, client)
 	}
 	<-exit
 }
 
-func scanNetwork(client rpc.Client, network config.Network, alertChan chan<- alert.Alert) {
+func scanNetwork(network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
 	var (
 		interval int
 		alerted  bool
 	)
 	for {
-		alertChan <- checkNetwork(client, network, &alerted)
+		alertChan <- checkNetwork(network, &alerted, client)
 		if alerted && network.Interval > 2 {
 			interval = 2
 		} else {
@@ -43,10 +46,11 @@ func scanNetwork(client rpc.Client, network config.Network, alertChan chan<- ale
 	}
 }
 
-func checkNetwork(client rpc.Client, network config.Network, alerted *bool) alert.Alert {
+func checkNetwork(network config.Network, alerted *bool, client *http.Client) alert.Alert {
 	var (
 		chainId string
 		height  string
+		url     string
 		err     error
 	)
 	rpcs := network.Rpcs
@@ -64,11 +68,11 @@ func checkNetwork(client rpc.Client, network config.Network, alerted *bool) aler
 						nRpcs = append(nRpcs, r)
 					}
 				}
-				client.Url = rpcs[i]
+				url = rpcs[i]
 				rpcs = nRpcs
-				chainId, height, err = rpc.GetLastestHeight(client)
+				chainId, height, err = rpc.GetLastestHeight(url, client)
 				if err != nil {
-					break
+					continue
 				}
 				if chainId == network.ChainId {
 					break
@@ -76,8 +80,8 @@ func checkNetwork(client rpc.Client, network config.Network, alerted *bool) aler
 			}
 		}
 	} else if len(rpcs) == 1 {
-		client.Url = network.Rpcs[0]
-		chainId, height, err = rpc.GetLastestHeight(client)
+		url = network.Rpcs[0]
+		chainId, height, err = rpc.GetLastestHeight(url, client)
 		if err != nil && !*alerted {
 			*alerted = true
 			return alert.NoRpc(network.ChainId)
@@ -88,17 +92,17 @@ func checkNetwork(client rpc.Client, network config.Network, alerted *bool) aler
 		}
 	}
 	heightInt, _ := strconv.Atoi(height)
-	return backCheck(client, network, heightInt, alerted)
+	return backCheck(network, heightInt, alerted, url, client)
 
 }
 
-func backCheck(client rpc.Client, cfg config.Network, height int, alerted *bool) alert.Alert {
+func backCheck(cfg config.Network, height int, alerted *bool, url string, client *http.Client) alert.Alert {
 	var (
 		signed    int
 		rpcErrors int
 	)
 	for checkHeight := height - cfg.BackCheck + 1; checkHeight <= height; checkHeight++ {
-		block, err := rpc.GetBlockFromHeight(client, strconv.Itoa(checkHeight))
+		block, err := rpc.GetBlockFromHeight(strconv.Itoa(checkHeight), url, client)
 		if err != nil || block.Error != nil {
 			rpcErrors++
 			cfg.BackCheck--
@@ -108,9 +112,13 @@ func backCheck(client rpc.Client, cfg config.Network, height int, alerted *bool)
 			signed++
 		}
 	}
-	if rpcErrors > cfg.BackCheck && !*alerted {
-		*alerted = true
-		return alert.RpcDown(client.Url)
+	if rpcErrors > cfg.BackCheck || cfg.BackCheck == 0 {
+		if !*alerted {
+			*alerted = true
+			return alert.RpcDown(url)
+		} else {
+			return alert.Nil("repeat alert suppressed - RpcDown on " + cfg.ChainId)
+		}
 	} else if float64(signed)/float64(cfg.BackCheck) < signThreshold {
 		*alerted = true
 		return alert.Missed((cfg.BackCheck - signed), cfg.BackCheck, cfg.ChainId)
@@ -118,7 +126,7 @@ func backCheck(client rpc.Client, cfg config.Network, height int, alerted *bool)
 		*alerted = false
 		return alert.Cleared(signed, cfg.BackCheck, cfg.ChainId)
 	} else {
-		return alert.Nil(signed, cfg.BackCheck, cfg.ChainId)
+		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed on " + cfg.ChainId)
 	}
 }
 
