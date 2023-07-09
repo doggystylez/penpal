@@ -5,11 +5,11 @@ lightweight tendermint signing monitor
 ## usage
 generate config
 ```
-penpal -c <path to config file> -init
+penpal -c </path/to/config.json> -init
 ```
 run
 ```
-penpal -c <path to config file>
+penpal -c </path/to/config.json>
 ```
 
 ## health check
@@ -45,7 +45,7 @@ multiple instances can be run to monitor each other and alert if any instance is
 	"notifiers": {
 		"telegram": {
 			"key": "api_key",
-			"chat": "chat_id"
+			"chat_id": "chat_id"
 		},
 		"discord": {
 			"webhook": "webhook_url"
