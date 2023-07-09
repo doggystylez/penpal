@@ -26,8 +26,9 @@ multiple instances can be run to monitor each other and alert if any instance is
 				"rpc1",
 				"rpc2"
 			],
-			"back_check": 5, # number of blocks to check
-			"interval": 15   # check interval in minutes
+			"back_check": 10,        # number of blocks to check
+            "alert_threshold": 5     # minimum of missed blocks to alert
+			"interval": 15           # check interval in minutes
 		},
 		{
 			"name": "Network2",
@@ -38,6 +39,7 @@ multiple instances can be run to monitor each other and alert if any instance is
 				"rpc2"
 			],
 			"back_check": 5,
+            "alert_threshold": 1
 			"interval": 15
 		}
 
@@ -52,8 +54,8 @@ multiple instances can be run to monitor each other and alert if any instance is
 		}
 	},
 	"health": {
-		"interval": 1, # health check interval in hours
-		"port": "8080", # health listen port
+		"interval": 1,                # health check interval in hours
+		"port": "8080",               # health listen port
 		"nodes": [
 			"http://192.168.1.1:8080" # addresses of other instances to run health checks on
 		]

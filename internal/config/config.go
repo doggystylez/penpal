@@ -40,6 +40,8 @@ func (c Config) validate() string {
 			return "chain-id missing"
 		} else if network.BackCheck <= 0 {
 			return "backcheck missing or invalid"
+		} else if network.AlertThreshold <= 0 || network.AlertThreshold > network.BackCheck {
+			return "alert threshold missing or invalid"
 		} else if network.Interval <= 0 {
 			return "check interval missing or invalid"
 		} else {
@@ -74,66 +76,27 @@ func New(file string) (err error) {
 	}
 	encoder := json.NewEncoder(configFile)
 	encoder.SetIndent("", "  ")
-	err = encoder.Encode(struct {
-		Networks []struct {
-			Name      string   `json:"name"`
-			ChainId   string   `json:"chain_id"`
-			Address   string   `json:"address"`
-			Rpcs      []string `json:"rpcs"`
-			BackCheck int      `json:"back_check"`
-			Interval  int      `json:"interval"`
-		} `json:"networks"`
-		Notifiers struct {
-			Telegram struct {
-				Key  string `json:"key"`
-				Chat string `json:"chat_id,omitempty"`
-			} `json:"telegram"`
-			Discord struct {
-				Webhook string `json:"webhook"`
-			} `json:"discord"`
-		} `json:"notifiers"`
-		Health struct {
-			Interval int      `json:"interval,omitempty"`
-			Port     string   `json:"port,omitempty"`
-			Nodes    []string `json:"nodes,omitempty"`
-		} `json:"health,omitempty"`
-	}{
-		Networks: []struct {
-			Name      string   `json:"name"`
-			ChainId   string   `json:"chain_id"`
-			Address   string   `json:"address"`
-			Rpcs      []string `json:"rpcs"`
-			BackCheck int      `json:"back_check"`
-			Interval  int      `json:"interval"`
-		}{
-			{
-				Name:      "Network1",
-				ChainId:   "network-1",
-				Address:   "AAAABBBBCCCCDDDD",
-				Rpcs:      []string{"rpc1", "rpc2"},
-				BackCheck: 5,
-				Interval:  15,
-			},
-			{
-				Name:      "Network2",
-				ChainId:   "network-2",
-				Address:   "AAAABBBBCCCCDDDD",
-				Rpcs:      []string{"rpc1", "rpc2"},
-				BackCheck: 5,
-				Interval:  15,
-			},
-		},
-		Notifiers: struct {
-			Telegram struct {
-				Key  string `json:"key"`
-				Chat string `json:"chat_id,omitempty"`
-			} `json:"telegram"`
-			Discord struct {
-				Webhook string `json:"webhook"`
-			} `json:"discord"`
-		}{
+	err = encoder.Encode(Config{
+		Networks: []Network{{
+			Name:           "Network1",
+			ChainId:        "network-1",
+			Address:        "AAAABBBBCCCCDDDD",
+			Rpcs:           []string{"rpc1", "rpc2"},
+			BackCheck:      10,
+			AlertThreshold: 5,
+			Interval:       15,
+		}, {
+			Name:           "Network2",
+			ChainId:        "network-2",
+			Address:        "AAAABBBBCCCCDDDD",
+			Rpcs:           []string{"rpc1", "rpc2"},
+			BackCheck:      5,
+			AlertThreshold: 5,
+			Interval:       15,
+		}},
+		Notifiers: Notifiers{
 			Telegram: struct {
-				Key  string `json:"key"`
+				Key  string `json:"key,omitempty"`
 				Chat string `json:"chat_id,omitempty"`
 			}{
 				Key:  "api_key",
@@ -143,17 +106,13 @@ func New(file string) (err error) {
 				Webhook string `json:"webhook"`
 			}{
 				Webhook: "webhook_url",
-			},
-		},
-		Health: struct {
-			Interval int      `json:"interval,omitempty"`
-			Port     string   `json:"port,omitempty"`
-			Nodes    []string `json:"nodes,omitempty"`
-		}{
+			}},
+		Health: Health{
 			Interval: 1,
 			Port:     "8080",
 			Nodes:    []string{"http://192.168.1.1:8080"},
-		}})
+		},
+	})
 	if err == nil {
 		err = errors.New("generated a new config at " + file)
 	}

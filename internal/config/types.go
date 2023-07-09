@@ -7,12 +7,13 @@ type (
 		Health    Health    `json:"health,omitempty"`
 	}
 	Network struct {
-		Name      string   `json:"name,omitempty"`
-		ChainId   string   `json:"chain_id,omitempty"`
-		Address   string   `json:"address,omitempty"`
-		Rpcs      []string `json:"rpcs,omitempty"`
-		BackCheck int      `json:"back_check,omitempty"`
-		Interval  int      `json:"interval,omitempty"`
+		Name           string   `json:"name,omitempty"`
+		ChainId        string   `json:"chain_id,omitempty"`
+		Address        string   `json:"address,omitempty"`
+		Rpcs           []string `json:"rpcs,omitempty"`
+		BackCheck      int      `json:"back_check,omitempty"`
+		AlertThreshold int      `json:"alert_threshold,omitempty"`
+		Interval       int      `json:"interval,omitempty"`
 	}
 
 	Notifiers struct {

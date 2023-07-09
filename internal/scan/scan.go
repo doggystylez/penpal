@@ -11,8 +11,6 @@ import (
 	"github.com/doggystylez/penpal/internal/rpc"
 )
 
-const signThreshold = 0.95
-
 func Monitor(cfg config.Config) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
@@ -119,7 +117,7 @@ func backCheck(cfg config.Network, height int, alerted *bool, url string, client
 		} else {
 			return alert.Nil("repeat alert suppressed - RpcDown on " + cfg.ChainId)
 		}
-	} else if float64(signed)/float64(cfg.BackCheck) < signThreshold {
+	} else if cfg.BackCheck-signed > cfg.AlertThreshold {
 		*alerted = true
 		return alert.Missed((cfg.BackCheck - signed), cfg.BackCheck, cfg.ChainId)
 	} else if *alerted {
