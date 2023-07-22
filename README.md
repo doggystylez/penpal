@@ -1,23 +1,58 @@
-## 🖋️🤝
+## 🖋️🤝 Penpal Monitor
 
 lightweight tendermint signing monitor
 ## Building
+```
 git clone https://github.com/doggystylez/penpal.git
+
 cd penpal
+
 go build ./cmd/penpal
-generate config
+
+# generate config
+
 ./penpal -init
 
+# Open the config.json file in editor the and add all the details
 
-## usage
-generate config
+nano config.json
+
+
 ```
-penpal -c </path/to/config.json> -init
+## Run as a systemd service on Ubuntu
+
+Create the Serrvice
+
+sudo nano /etc/systemd/system/penpal.service
+
 ```
-run
+[Unit]
+Description=Penpal Alert
+After=network.target
+[Service]
+Type=simple
+User=assassin
+ExecStart=/home/assassin/penpal/penpal -c /home/assassin/penpal/config.json
+
+# Replace assassin with your username
+
+Restart=always
+RestartSec=2
+[Install]
+WantedBy=multi-user.target
+
 ```
-penpal -c </path/to/config.json>
+# After Saving the Service file Enable the Service
+
 ```
+sudo systemctl start penpal
+
+sudo systemctl enable penpal
+
+sudo journalctl -u penpal.service -f -ocat
+
+```
+
 
 ## health check
 multiple instances can be run to monitor each other and alert if any instance is malfunctioning or unavailable. currently, this uses a http server which listens on the designated port with no authentication other than checking the header, so use firewall rules to only allow access to this port from the other instances
