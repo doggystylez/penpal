@@ -9,7 +9,7 @@ cd penpal
 
 go build ./cmd/penpal
 
-generate config
+#generate config
 
 ./penpal -init
 
