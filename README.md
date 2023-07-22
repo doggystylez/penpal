@@ -2,6 +2,7 @@
 
 lightweight tendermint signing monitor
 ## Building
+```
 git clone https://github.com/doggystylez/penpal.git
 
 cd penpal
@@ -12,6 +13,7 @@ generate config
 
 ./penpal -init
 
+```
 
 ## usage
 generate config
