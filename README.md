@@ -3,9 +3,13 @@
 lightweight tendermint signing monitor
 ## Building
 git clone https://github.com/doggystylez/penpal.git
+
 cd penpal
+
 go build ./cmd/penpal
+
 generate config
+
 ./penpal -init
 
 
