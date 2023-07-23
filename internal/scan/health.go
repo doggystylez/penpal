@@ -3,7 +3,6 @@ package scan
 import (
 	"context"
 	"log"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -53,24 +52,12 @@ func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, client *http.C
 	}
 }
 
-func healthServer(cfg config.Config, client *http.Client) {
+func healthServer(port string) {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("agent") == "penpal" {
-			var b bool
-			i := rand.Intn(len(cfg.Networks))
-			a := checkNetwork(cfg.Networks[i], &b, client)
-			if a.AlertType == 0 || a.AlertType == 1 || a.AlertType == 3 {
-				w.WriteHeader(http.StatusOK)
-				_, err := w.Write([]byte("OK"))
-				if err != nil {
-					log.Println("failed writing http response", err)
-				}
-			} else {
-				w.WriteHeader(http.StatusServiceUnavailable)
-				_, err := w.Write([]byte("NOTOK"))
-				if err != nil {
-					log.Println("failed writing http response", err)
-				}
+			_, err := w.Write([]byte("OK"))
+			if err != nil {
+				log.Println("failed writing http response", err)
 			}
 		} else {
 			w.WriteHeader(http.StatusUnauthorized)
@@ -81,7 +68,7 @@ func healthServer(cfg config.Config, client *http.Client) {
 		}
 	})
 	server := &http.Server{
-		Addr:              ":" + cfg.Health.Port,
+		Addr:              ":" + port,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	if err := server.ListenAndServe(); err != nil {

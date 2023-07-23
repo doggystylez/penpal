@@ -6,6 +6,7 @@ const (
 	RpcError
 	Miss
 	Jail
+	Stall
 	Health
 	Unknown
 )

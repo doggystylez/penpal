@@ -1,61 +1,62 @@
 ## 🖋️🤝 Penpal Monitor
 
 lightweight tendermint signing monitor
-## Building
+## build
 ```
 git clone https://github.com/doggystylez/penpal.git
 
 cd penpal
 
 go build ./cmd/penpal
-
-# generate config
-
+```
+## generate and set config
+```
 ./penpal -init
 
-# Open the config.json file in editor the and add all the details
-
 nano config.json
-
-
 ```
-## Run as a systemd service on Ubuntu
 
-Create the Serrvice
 
-sudo nano /etc/systemd/system/penpal.service
-
+## set up systemd service
+save the following as `/etc/systemd/system/penpal.service`
 ```
 [Unit]
-Description=Penpal Alert
+Description=Penpal Monitor
 After=network.target
 [Service]
 Type=simple
-User=assassin
-ExecStart=/home/assassin/penpal/penpal -c /home/assassin/penpal/config.json
-
-# Replace assassin with your username
-
+User=<user>
+ExecStart=<path/to>/penpal -c <path/to>/config.json
 Restart=always
 RestartSec=2
 [Install]
 WantedBy=multi-user.target
-
 ```
-# After Saving the Service file Enable the Service
-
 ```
-sudo systemctl start penpal
+systemctl start penpal
 
-sudo systemctl enable penpal
+systemctl enable penpal
 
-sudo journalctl -u penpal.service -f -ocat
-
+journalctl -u penpal.service -f -ocat
 ```
-
 
 ## health check
-multiple instances can be run to monitor each other and alert if any instance is malfunctioning or unavailable. currently, this uses a http server which listens on the designated port with no authentication other than checking the header, so use firewall rules to only allow access to this port from the other instances
+multiple instances can be run to monitor each other and alert if any instance is unavailable. currently, this uses a http server which listens on the designated port with no authentication other than checking the header, so use firewall rules to only allow access to this port from the other instances
+
+for example, running instance0 on 10.0.0.0:1000 and instance1 on 10.0.0.1:1001:
+
+instance0 config
+```
+<...>
+"nodes": ["http://10.0.0.1:1001"]
+<...>
+```
+instance1 config
+```
+<...>
+"nodes": ["http://10.0.0.0:1000"]
+<...>
+```
 
 ## config (JSON)
 ```

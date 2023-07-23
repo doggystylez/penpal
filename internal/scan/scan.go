@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -22,7 +23,7 @@ func Monitor(cfg config.Config) {
 		go alert.Watch(alertChan, cfg.Notifiers, client)
 	}
 	if cfg.Health.Interval != 0 {
-		go healthServer(cfg, client)
+		go healthServer(cfg.Health.Port)
 		go healthCheck(cfg.Health, alertChan, client)
 	}
 	<-exit
@@ -34,7 +35,7 @@ func scanNetwork(network config.Network, alertChan chan<- alert.Alert, client *h
 		alerted  bool
 	)
 	for {
-		alertChan <- checkNetwork(network, &alerted, client)
+		checkNetwork(network, client, &alerted, alertChan)
 		if alerted && network.Interval > 2 {
 			interval = 2
 		} else {
@@ -44,7 +45,7 @@ func scanNetwork(network config.Network, alertChan chan<- alert.Alert, client *h
 	}
 }
 
-func checkNetwork(network config.Network, alerted *bool, client *http.Client) alert.Alert {
+func checkNetwork(network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
 	var (
 		chainId string
 		height  string
@@ -58,9 +59,10 @@ func checkNetwork(network config.Network, alerted *bool, client *http.Client) al
 			var nRpcs []string
 			if len(rpcs) == 0 && !*alerted {
 				*alerted = true
-				return alert.NoRpc(network.ChainId)
+				alertChan <- alert.NoRpc(network.Name)
+				return
 			} else {
-				i = rand.Intn(len(rpcs))
+				i = rand.Intn(len(rpcs)) //nolint
 				for _, r := range rpcs {
 					if r != rpcs[i] {
 						nRpcs = append(nRpcs, r)
@@ -68,7 +70,7 @@ func checkNetwork(network config.Network, alerted *bool, client *http.Client) al
 				}
 				url = rpcs[i]
 				rpcs = nRpcs
-				chainId, height, err = rpc.GetLastestHeight(url, client)
+				chainId, height, err = rpc.GetLatestHeight(url, client)
 				if err != nil {
 					continue
 				}
@@ -79,19 +81,29 @@ func checkNetwork(network config.Network, alerted *bool, client *http.Client) al
 		}
 	} else if len(rpcs) == 1 {
 		url = network.Rpcs[0]
-		chainId, height, err = rpc.GetLastestHeight(url, client)
+		chainId, height, err = rpc.GetLatestHeight(url, client)
 		if err != nil && !*alerted {
 			*alerted = true
-			return alert.NoRpc(network.ChainId)
+			alertChan <- alert.NoRpc(network.Name)
+			return
 		}
 		if chainId != network.ChainId && !*alerted {
 			*alerted = true
-			return alert.NoRpc(network.ChainId)
+			alertChan <- alert.NoRpc(network.Name)
+			return
+		}
+	}
+	chainId, blocktime, err := rpc.GetLatestBlockTime(url, client)
+	if err != nil || chainId != network.ChainId {
+		log.Println("err - failed to check lastest block time")
+	} else {
+		if time.Since(blocktime) > time.Minute*30 {
+			log.Println("last block time is", blocktime, "- sending alert")
+			alertChan <- alert.Stalled(blocktime, network.Name)
 		}
 	}
 	heightInt, _ := strconv.Atoi(height)
-	return backCheck(network, heightInt, alerted, url, client)
-
+	alertChan <- backCheck(network, heightInt, alerted, url, client)
 }
 
 func backCheck(cfg config.Network, height int, alerted *bool, url string, client *http.Client) alert.Alert {

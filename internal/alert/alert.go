@@ -56,16 +56,15 @@ func (n notification) send(client *http.Client) (err error) {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
-	defer req.Body.Close()
 	if err != nil {
 		log.Println(err)
 		return
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode > 299 || resp.StatusCode < 200 {
 		err = errors.New("code not 200")
 	}
 	return
-
 }
 
 func telegramNoti(key, chat, message string) notification {
@@ -77,31 +76,35 @@ func discordNoti(url, message string) notification {
 }
 
 func Nil(message string) Alert {
-	return Alert{AlertType: 0, Message: message}
+	return Alert{AlertType: None, Message: message}
 }
 
 func Cleared(signed int, check int, chain string) Alert {
-	return Alert{AlertType: 1, Message: "😌 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
+	return Alert{AlertType: Clear, Message: "😌 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
 }
 
 func NoRpc(chain string) Alert {
-	return Alert{AlertType: 2, Message: "📡 no rpcs available for " + chain}
+	return Alert{AlertType: RpcError, Message: "📡 no rpcs available for " + chain}
 }
 
 func RpcDown(url string) Alert {
-	return Alert{AlertType: 2, Message: "📡 rpc " + url + " is down or malfunctioning"}
+	return Alert{AlertType: RpcError, Message: "📡 rpc " + url + " is down or malfunctioning"}
 }
 
 func Missed(missed int, check int, chain string) Alert {
-	return Alert{AlertType: 3, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks on " + chain}
+	return Alert{AlertType: Miss, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks on " + chain}
+}
+
+func Stalled(blocktime time.Time, chain string) Alert {
+	return Alert{AlertType: Stall, Message: "⏰ warning - last block found on " + chain + " was " + blocktime.Format(time.RFC1123)}
 }
 
 func Healthy(interval time.Duration, address string) Alert {
-	return Alert{AlertType: 5, Message: "🤝 penpal at " + address + " healthy. next check at " + timeInterval(interval)}
+	return Alert{AlertType: Health, Message: "🤝 penpal at " + address + " healthy. next check at " + timeInterval(interval)}
 }
 
 func Unhealthy(interval time.Duration, address string) Alert {
-	return Alert{AlertType: 5, Message: "🤢 penpal at " + address + " unhealthy. next check at " + timeInterval(interval)}
+	return Alert{AlertType: Health, Message: "🤢 penpal at " + address + " unhealthy. next check at " + timeInterval(interval)}
 }
 
 func timeInterval(d time.Duration) string {
