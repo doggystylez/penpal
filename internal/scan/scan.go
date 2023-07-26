@@ -95,12 +95,11 @@ func checkNetwork(network config.Network, client *http.Client, alerted *bool, al
 	}
 	chainId, blocktime, err := rpc.GetLatestBlockTime(url, client)
 	if err != nil || chainId != network.ChainId {
-		log.Println("err - failed to check lastest block time")
-	} else {
-		if time.Since(blocktime) > time.Minute*30 {
-			log.Println("last block time is", blocktime, "- sending alert")
-			alertChan <- alert.Stalled(blocktime, network.Name)
-		}
+		log.Println("err - failed to check lastest block time for", network.Name)
+	} else if network.StallTime != 0 && time.Since(blocktime) > time.Minute*time.Duration(network.StallTime) {
+		log.Println("last block time on", network.Name, "is", blocktime, "- sending alert")
+		*alerted = true
+		alertChan <- alert.Stalled(blocktime, network.Name)
 	}
 	heightInt, _ := strconv.Atoi(height)
 	alertChan <- backCheck(network, heightInt, alerted, url, client)
@@ -127,16 +126,16 @@ func backCheck(cfg config.Network, height int, alerted *bool, url string, client
 			*alerted = true
 			return alert.RpcDown(url)
 		} else {
-			return alert.Nil("repeat alert suppressed - RpcDown on " + cfg.ChainId)
+			return alert.Nil("repeat alert suppressed - RpcDown on " + cfg.Name)
 		}
 	} else if cfg.BackCheck-signed > cfg.AlertThreshold {
 		*alerted = true
-		return alert.Missed((cfg.BackCheck - signed), cfg.BackCheck, cfg.ChainId)
+		return alert.Missed((cfg.BackCheck - signed), cfg.BackCheck, cfg.Name)
 	} else if *alerted {
 		*alerted = false
-		return alert.Cleared(signed, cfg.BackCheck, cfg.ChainId)
+		return alert.Cleared(signed, cfg.BackCheck, cfg.Name)
 	} else {
-		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed on " + cfg.ChainId)
+		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed on " + cfg.Name)
 	}
 }
 

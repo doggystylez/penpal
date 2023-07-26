@@ -70,8 +70,9 @@ instance1 config
 				"rpc2"
 			],
 			"back_check": 10,        # number of blocks to check
-            "alert_threshold": 5,    # minimum of missed blocks to alert
-			"interval": 15           # check interval in minutes
+			"alert_threshold": 5,    # minimum of missed blocks to alert
+			"interval": 15,          # check interval, in minutes
+			"stall_time": 30         # alert if latest block timestamp is older than, in minutes
 		},
 		{
 			"name": "Network2",
@@ -83,7 +84,8 @@ instance1 config
 			],
 			"back_check": 5,
             "alert_threshold": 1,
-			"interval": 15
+			"interval": 15,
+			"stall_time": 30
 		}
 
 	],
@@ -97,7 +99,7 @@ instance1 config
 		}
 	},
 	"health": {
-		"interval": 1,                # health check interval in hours
+		"interval": 1,                # health check interval, in hours
 		"port": "8080",               # health listen port
 		"nodes": [
 			"http://192.168.1.1:8080" # addresses of other instances to run health checks on

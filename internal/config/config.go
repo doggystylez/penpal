@@ -37,18 +37,20 @@ func (c Config) validate() string {
 		} else if network.Address == "" {
 			return "address missing"
 		} else if network.ChainId == "" {
-			return "chain-id missing"
+			return "chain-id missing for " + network.Name
 		} else if network.BackCheck <= 0 {
-			return "backcheck missing or invalid"
+			return "backcheck missing or invalid for " + network.Name
 		} else if network.AlertThreshold <= 0 || network.AlertThreshold > network.BackCheck {
-			return "alert threshold missing or invalid"
+			return "alert threshold missing or invalid for " + network.Name
 		} else if network.Interval <= 0 {
-			return "check interval missing or invalid"
+			return "check interval missing or invalid for " + network.Name
+		} else if network.StallTime < 0 {
+			return "stall time invalid for " + network.Name
 		} else {
 			for _, rpc := range network.Rpcs {
 				parsed, err := url.Parse(rpc)
 				if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
-					return "rpc \"" + rpc + "\" invalid"
+					return "rpc \"" + rpc + "\" invalid for" + network.Name
 				}
 			}
 		}
@@ -85,6 +87,7 @@ func New(file string) (err error) {
 			BackCheck:      10,
 			AlertThreshold: 5,
 			Interval:       15,
+			StallTime:      30,
 		}, {
 			Name:           "Network2",
 			ChainId:        "network-2",
@@ -93,6 +96,7 @@ func New(file string) (err error) {
 			BackCheck:      5,
 			AlertThreshold: 5,
 			Interval:       15,
+			StallTime:      30,
 		}},
 		Notifiers: Notifiers{
 			Telegram: struct {

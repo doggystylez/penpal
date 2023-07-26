@@ -36,5 +36,12 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	for _, network := range cfg.Networks {
+		if network.StallTime == 1 {
+			fmt.Println("warning! stall time for", network.Name, "is set to 1 minutes, this may cause more frequent false alerts")
+		} else if network.StallTime == 0 {
+			fmt.Println("warning! stall check for", network.Name, "is disabled")
+		}
+	}
 	scan.Monitor(cfg)
 }

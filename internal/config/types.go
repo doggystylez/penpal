@@ -14,6 +14,7 @@ type (
 		BackCheck      int      `json:"back_check,omitempty"`
 		AlertThreshold int      `json:"alert_threshold,omitempty"`
 		Interval       int      `json:"interval,omitempty"`
+		StallTime      int      `json:"stall_time,omitempty"`
 	}
 
 	Notifiers struct {
