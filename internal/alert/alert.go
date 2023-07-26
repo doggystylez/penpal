@@ -80,7 +80,7 @@ func Nil(message string) Alert {
 }
 
 func Cleared(signed int, check int, chain string) Alert {
-	return Alert{AlertType: Clear, Message: "😌 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
+	return Alert{AlertType: Clear, Message: "🤗 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
 }
 
 func NoRpc(chain string) Alert {
