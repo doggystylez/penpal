@@ -42,6 +42,12 @@ func main() {
 		} else if network.StallTime == 0 {
 			fmt.Println("warning! stall check for", network.Name, "is disabled")
 		}
+		if !network.RpcAlert {
+			fmt.Println("warning! rpc alerts for", network.Name, "are disabled")
+		}
+		if network.Reverse {
+			fmt.Println("warning!", network.Name, "running in reverse mode 🔄")
+		}
 	}
 	scan.Monitor(cfg)
 }

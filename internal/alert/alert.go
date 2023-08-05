@@ -83,6 +83,10 @@ func Cleared(signed int, check int, chain string) Alert {
 	return Alert{AlertType: Clear, Message: "😌 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
 }
 
+func Signed(signed int, check int, chain string) Alert {
+	return Alert{AlertType: Clear, Message: "😌 blocks! found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks on " + chain}
+}
+
 func NoRpc(chain string) Alert {
 	return Alert{AlertType: RpcError, Message: "📡 no rpcs available for " + chain}
 }

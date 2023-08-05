@@ -57,7 +57,7 @@ func checkNetwork(network config.Network, client *http.Client, alerted *bool, al
 		for {
 			var i int
 			var nRpcs []string
-			if len(rpcs) == 0 && !*alerted {
+			if len(rpcs) == 0 && !*alerted && network.RpcAlert {
 				*alerted = true
 				alertChan <- alert.NoRpc(network.Name)
 				return
@@ -82,12 +82,12 @@ func checkNetwork(network config.Network, client *http.Client, alerted *bool, al
 	} else if len(rpcs) == 1 {
 		url = network.Rpcs[0]
 		chainId, height, err = rpc.GetLatestHeight(url, client)
-		if err != nil && !*alerted {
+		if err != nil && !*alerted && network.RpcAlert {
 			*alerted = true
 			alertChan <- alert.NoRpc(network.Name)
 			return
 		}
-		if chainId != network.ChainId && !*alerted {
+		if chainId != network.ChainId && !*alerted && network.RpcAlert {
 			*alerted = true
 			alertChan <- alert.NoRpc(network.Name)
 			return
@@ -121,21 +121,29 @@ func backCheck(cfg config.Network, height int, alerted *bool, url string, client
 			signed++
 		}
 	}
-	if rpcErrors > cfg.BackCheck || cfg.BackCheck == 0 {
+	if rpcErrors > cfg.BackCheck || cfg.BackCheck == 0 && cfg.RpcAlert {
 		if !*alerted {
 			*alerted = true
 			return alert.RpcDown(url)
 		} else {
 			return alert.Nil("repeat alert suppressed - RpcDown on " + cfg.Name)
 		}
-	} else if cfg.BackCheck-signed > cfg.AlertThreshold {
-		*alerted = true
-		return alert.Missed((cfg.BackCheck - signed), cfg.BackCheck, cfg.Name)
-	} else if *alerted {
-		*alerted = false
-		return alert.Cleared(signed, cfg.BackCheck, cfg.Name)
+	} else if !cfg.Reverse {
+		if cfg.BackCheck-signed > cfg.AlertThreshold {
+			*alerted = true
+			return alert.Missed((cfg.BackCheck - signed), cfg.BackCheck, cfg.Name)
+		} else if *alerted {
+			*alerted = false
+			return alert.Cleared(signed, cfg.BackCheck, cfg.Name)
+		} else {
+			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed on " + cfg.Name)
+		}
 	} else {
-		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed on " + cfg.Name)
+		if signed > 1 {
+			return alert.Signed(signed, cfg.BackCheck, cfg.Name)
+		} else {
+			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed on " + cfg.Name)
+		}
 	}
 }
 

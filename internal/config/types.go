@@ -11,10 +11,12 @@ type (
 		ChainId        string   `json:"chain_id,omitempty"`
 		Address        string   `json:"address,omitempty"`
 		Rpcs           []string `json:"rpcs,omitempty"`
+		RpcAlert       bool     `json:"rpc_alert,omitempty"`
 		BackCheck      int      `json:"back_check,omitempty"`
 		AlertThreshold int      `json:"alert_threshold,omitempty"`
 		Interval       int      `json:"interval,omitempty"`
 		StallTime      int      `json:"stall_time,omitempty"`
+		Reverse        bool     `json:"reverse,omitempty"`
 	}
 
 	Notifiers struct {
