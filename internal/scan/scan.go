@@ -83,11 +83,13 @@ func checkNetwork(network config.Network, client *http.Client, alerted *bool, al
 		url = network.Rpcs[0]
 		chainId, height, err = rpc.GetLatestHeight(url, client)
 		if err != nil && !*alerted && network.RpcAlert {
+			log.Println("err - failed to check latest height for", network.Name, "err - ", err)
 			*alerted = true
 			alertChan <- alert.NoRpc(network.Name)
 			return
 		}
 		if chainId != network.ChainId && !*alerted && network.RpcAlert {
+			log.Println("err - chain id validation failed for rpc", url, "on", network.Name)
 			*alerted = true
 			alertChan <- alert.NoRpc(network.Name)
 			return
@@ -95,7 +97,7 @@ func checkNetwork(network config.Network, client *http.Client, alerted *bool, al
 	}
 	chainId, blocktime, err := rpc.GetLatestBlockTime(url, client)
 	if err != nil || chainId != network.ChainId {
-		log.Println("err - failed to check lastest block time for", network.Name)
+		log.Println("err - failed to check latest block time for", network.Name)
 	} else if network.StallTime != 0 && time.Since(blocktime) > time.Minute*time.Duration(network.StallTime) {
 		log.Println("last block time on", network.Name, "is", blocktime, "- sending alert")
 		*alerted = true
