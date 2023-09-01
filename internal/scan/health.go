@@ -4,11 +4,14 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sync" // Import the sync package
 	"time"
 
 	"github.com/cordtus/penpal/internal/alert"
 	"github.com/cordtus/penpal/internal/config"
 )
+
+// Rest of your health.go code...
 
 func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, client *http.Client) {
 	for _, address := range cfg.Nodes {
@@ -53,6 +56,7 @@ func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, client *http.C
 }
 
 func healthServer(port string) {
+	once := sync.Once{}
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("agent") == "penpal" {
 			_, err := w.Write([]byte("OK"))
@@ -67,12 +71,16 @@ func healthServer(port string) {
 			}
 		}
 	})
+
 	server := &http.Server{
 		Addr:              ":" + port,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
-	if err := server.ListenAndServe(); err != nil {
-		log.Println("http server failed", err)
-		return
-	}
+
+	once.Do(func() {
+		if err := server.ListenAndServe(); err != nil {
+			log.Println("http server failed", err)
+			return
+		}
+	})
 }
