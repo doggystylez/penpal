@@ -1,7 +1,6 @@
 package scan
 
 import (
-	"context"
 	"log"
 	"math/rand"
 	"net/http"
@@ -55,8 +54,6 @@ func checkSig(address string, block rpc.Block) bool {
 	return false
 }
 
-const maxRetries = 3
-
 func checkNetwork(validator config.Validator, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
 	var (
 		chainId string
@@ -64,7 +61,6 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		url     string
 		err     error
 	)
-	rpcTimeout := 1 * time.Second
 	rpcRetries := 0
 	rpcMaxRetries := 3
 
@@ -113,31 +109,21 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 			}
 		}
 
-		// Attempt to fetch the block time with the adjusted timeout
-		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
+		// Attempt to fetch the block height
+		blockHeight, err := strconv.Atoi(height)
 		if err != nil {
-			log.Printf("Error creating request: %v", err)
+			log.Printf("Error converting height to integer for %s: %v", network.ChainId, err)
 			time.Sleep(time.Second * 5)
 			rpcRetries++
 			continue
 		}
 
-		resp, err := client.Do(req)
-		if err != nil {
-			log.Printf("Error performing request: %v", err)
-			time.Sleep(time.Second * 5)
-			rpcRetries++
-			continue
-		}
-		defer resp.Body.Close()
-
-		blockHeight, _ := strconv.Atoi(height)
 		alertChan <- backCheck(validator, network, blockHeight, alerted, url, client)
 		return
 	}
 
 	// All retries failed, handle the failure
-	log.Printf("All retry attempts to fetch block time for %s failed", network.ChainId)
+	log.Printf("All retry attempts to fetch block height for %s failed", network.ChainId)
 }
 
 func backCheck(validator config.Validator, network config.Network, height int, alerted *bool, url string, client *http.Client) alert.Alert {
