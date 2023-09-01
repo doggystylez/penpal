@@ -15,13 +15,13 @@ func main() {
 		file string
 		init bool
 	)
-	flag.BoolVar(&init, "init", false, "initialize new config file")
-	flag.StringVar(&file, "config", "./config.json", "path to config")
-	flag.StringVar(&file, "c", "./config.json", "path to config [shorthand]")
+	flag.BoolVar(&init, "init", false, "initialize a new config file")
+	flag.StringVar(&file, "config", "./config.json", "path to the config file")
+	flag.StringVar(&file, "c", "./config.json", "path to the config file [shorthand]")
 	flag.Parse()
 	args := os.Args
 	if len(args) > 1 && !strings.HasPrefix(args[1], "-") {
-		fmt.Println("invalid arg", os.Args[1])
+		fmt.Println("invalid argument:", os.Args[1])
 		flag.Usage()
 		return
 	}
@@ -38,30 +38,19 @@ func main() {
 	}
 
 	for _, validator := range cfg.Validators {
-		go func(validator config.Validator) {
-			validatorConfig := createValidatorConfig(validator, cfg.CommonRPCs)
-			scan.Monitor(validatorConfig)
-		}(validator)
+		validatorConfig := createValidatorConfig(validator, cfg.Network)
+		go scan.Monitor(validatorConfig)
 	}
 	select {}
 }
 
-func createValidatorConfig(validator config.Validator, commonRPCs []string) config.Config {
+func createValidatorConfig(validator config.Validator, network config.Network) config.Config {
 	return config.Config{
-		Networks: []config.Network{
-			{
-				Name:           validator.Moniker,
-				ChainId:        "common-chain-id", // Replace with the actual chain ID
-				Address:        validator.Address,
-				Rpcs:           commonRPCs,
-				RpcAlert:       true,
-				BackCheck:      10,
-				AlertThreshold: 5,
-				Interval:       15,
-				StallTime:      30,
-			},
+		Validators: []config.Validator{
+			validator,
 		},
-		Notifiers: cfg.Notifiers, // You can reuse the notifiers from the common config
-		Health:    cfg.Health,    // You can reuse the health config from the common config
+		Network:   network, // Use the common network config for all validators
+		Notifiers: cfg.Notifiers,
+		Health:    cfg.Health,
 	}
 }

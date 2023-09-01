@@ -3,10 +3,11 @@ package config
 type (
 	Config struct {
 		Validators []Validator `json:"validators,omitempty"`
-		Network    Network     `json:"network,omitempty"`
 		Notifiers  Notifiers   `json:"notifiers,omitempty"`
 		Health     Health      `json:"health,omitempty"`
+		Network    Network     `json:"network,omitempty"` // Common network config
 	}
+
 	Validator struct {
 		Name    string `json:"name,omitempty"`
 		Address string `json:"address,omitempty"`
@@ -20,6 +21,7 @@ type (
 		Interval       int      `json:"interval,omitempty"`
 		StallTime      int      `json:"stall_time,omitempty"`
 		Reverse        bool     `json:"reverse,omitempty"`
+		RpcAlert       bool     `json:"rpc_alert"`
 	}
 
 	Notifiers struct {
