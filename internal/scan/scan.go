@@ -64,7 +64,7 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		url     string
 		err     error
 	)
-	rpcTimeout := time.Second // Set the timeout for fetching the block time to 1 second
+	rpcTimeout := 1 * time.Second // Set the timeout for fetching the block time to 1 second
 	rpcRetries := 0
 	rpcMaxRetries := 3 // You can adjust this value if needed
 
