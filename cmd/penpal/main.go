@@ -37,21 +37,18 @@ func main() {
 		return
 	}
 
-	// Use a single common network configuration for all validators
-	validatorConfig := createValidatorConfig(cfg.Validators, cfg.Network, cfg.Notifiers, cfg.Health)
-
-	// Launch the monitor for each validator
 	for _, validator := range cfg.Validators {
+		validatorConfig := createValidatorConfig(validator, cfg.Network, cfg.Notifiers, cfg.Health)
 		go scan.Monitor(validatorConfig)
 	}
 
 	select {}
 }
 
-func createValidatorConfig(validators []config.Validator, network config.Network, notifiers config.Notifiers, health config.Health) config.Config {
+func createValidatorConfig(validator config.Validator, network config.Network, notifiers config.Notifiers, health config.Health) config.Config {
 	return config.Config{
-		Validators: validators,
-		Network:    network, // Use the common network config for all validators
+		Validators: []config.Validator{validator}, // Each validator has its own configuration
+		Network:    network,                       // Use the common network config for all validators
 		Notifiers:  notifiers,
 		Health:     health,
 	}
