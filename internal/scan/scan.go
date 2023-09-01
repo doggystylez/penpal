@@ -40,7 +40,7 @@ func checkBlockTime(network config.Network, client *http.Client) {
 		if err != nil {
 			log.Println("Error checking block time:", err)
 		} else {
-			log.Println("Latest block time on", chainID, "is", blockTime)
+			log.Println("Latest block time on", chainID, "i0s", blockTime)
 		}
 
 		// Sleep for the specified interval
