@@ -38,19 +38,19 @@ func main() {
 	}
 
 	for _, validator := range cfg.Validators {
-		validatorConfig := createValidatorConfig(validator, cfg.Network)
+		validatorConfig := createValidatorConfig(validator, cfg.Network, cfg.Notifiers, cfg.Health)
 		go scan.Monitor(validatorConfig)
 	}
 	select {}
 }
 
-func createValidatorConfig(validator config.Validator, network config.Network) config.Config {
+func createValidatorConfig(validator config.Validator, network config.Network, notifiers config.Notifiers, health config.Health) config.Config {
 	return config.Config{
 		Validators: []config.Validator{
 			validator,
 		},
 		Network:   network, // Use the common network config for all validators
-		Notifiers: cfg.Notifiers,
-		Health:    cfg.Health,
+		Notifiers: notifiers,
+		Health:    health,
 	}
 }

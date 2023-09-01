@@ -11,7 +11,7 @@ import (
 func Load(file string) (config Config, err error) {
 	configFile := filepath.Clean(file)
 	if _, err = os.Stat(configFile); os.IsNotExist(err) {
-		err = errors.New("config file does not exist. use `-init` to generate a new one")
+		err = errors.New("config file does not exist. Use `-init` to generate a new one")
 		return
 	}
 	data, err := os.ReadFile(configFile)

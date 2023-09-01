@@ -21,7 +21,7 @@ type (
 		Interval       int      `json:"interval,omitempty"`
 		StallTime      int      `json:"stall_time,omitempty"`
 		Reverse        bool     `json:"reverse,omitempty"`
-		RpcAlert       bool     `json:"rpc_alert"`
+		RpcAlert       bool     `json:"rpc_alert,omitempty"` // <-- Added
 	}
 
 	Notifiers struct {
