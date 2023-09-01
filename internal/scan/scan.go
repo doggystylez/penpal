@@ -131,11 +131,10 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 			}
 		}
 
-		// Attempt to fetch the block time with the adjusted timeout
 		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 		if err != nil {
 			log.Printf("Error creating request: %v", err)
-			time.Sleep(time.Second * 5) // Wait before retrying
+			time.Sleep(time.Second * 5)
 			rpcRetries++
 			continue
 		}
@@ -143,7 +142,7 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		resp, err := client.Do(req)
 		if err != nil {
 			log.Printf("Error performing request: %v", err)
-			time.Sleep(time.Second * 5) // Wait before retrying
+			time.Sleep(time.Second * 5)
 			rpcRetries++
 			continue
 		}
@@ -153,12 +152,11 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		chainId, blockTime, err = rpc.GetLatestBlockTime(url, client)
 		if err != nil || chainId != network.ChainId {
 			log.Printf("Error fetching block time (attempt %d/%d) for %s: %v", rpcRetries+1, rpcMaxRetries+1, network.ChainId, err)
-			time.Sleep(time.Second * 5) // Wait before retrying
+			time.Sleep(time.Second * 5)
 			rpcRetries++
 			continue
 		}
 
-		// Block time fetched successfully, process it
 		log.Printf("Latest block time on %s is %s", network.ChainId, blockTime)
 
 		if network.StallTime != 0 && time.Since(blockTime) > time.Minute*time.Duration(network.StallTime) {
@@ -171,7 +169,6 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		return
 	}
 
-	// All retries failed, handle the failure
 	log.Printf("All retry attempts to fetch block time for %s failed", network.ChainId)
 }
 
