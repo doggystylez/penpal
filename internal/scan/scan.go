@@ -66,8 +66,6 @@ func checkSig(address string, block rpc.Block) bool {
 	return false
 }
 
-const maxRetries = 3
-
 func checkNetwork(validator config.Validator, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
 	var (
 		chainId string
