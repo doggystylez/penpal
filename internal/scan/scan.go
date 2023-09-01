@@ -21,13 +21,31 @@ func Monitor(cfg config.Config) {
 	}
 	for _, validator := range cfg.Validators {
 		go scanValidator(validator, cfg.Network, alertChan, client)
-		go alert.Watch(alertChan, cfg.Notifiers, client)
 	}
 	if cfg.Health.Interval != 0 {
 		go healthServer(cfg.Health.Port)
 		go healthCheck(cfg.Health, alertChan, client)
 	}
+
+	// Check block time once per cycle
+	checkBlockTime(cfg.Network, client)
+
 	<-exit
+}
+
+func checkBlockTime(network config.Network, client *http.Client) {
+	for {
+		// Perform the block time check here
+		blockTime, chainID, err := rpc.GetLatestBlockTime(network.Rpcs[0], client)
+		if err != nil {
+			log.Println("Error checking block time:", err)
+		} else {
+			log.Println("Latest block time on", chainID, "is", blockTime)
+		}
+
+		// Sleep for the specified interval
+		time.Sleep(time.Duration(network.Interval) * time.Minute)
+	}
 }
 
 func scanValidator(validator config.Validator, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
