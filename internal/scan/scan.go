@@ -34,7 +34,13 @@ func Monitor(cfg config.Config) {
 }
 
 func checkBlockTime(network config.Network, client *http.Client) {
-	panic("unimplemented")
+	for {
+		// Perform some placeholder logic here
+		log.Println("Checking block time...")
+
+		// Sleep for the specified interval
+		time.Sleep(time.Duration(network.Interval) * time.Minute)
+	}
 }
 
 func scanValidator(validator config.Validator, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
