@@ -14,12 +14,20 @@ func GetLatestHeight(url string, client *http.Client) (chainID string, height st
 	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Height, err
 }
 
-func GetLatestBlockTime(url string, client *http.Client) (string, time.Time, error) {
+func GetLatestBlockTime(url string, client *http.Client) (chainID string, blockTime time.Time, err error) {
 	block, err := getLatestBlock(url, client)
 	if err != nil {
 		return "", time.Time{}, err
 	}
 	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Time, nil
+}
+
+func GetLatestBlockTimeFromRPC(url string, client *http.Client) (string, error) {
+	blockTime, err := GetLatestBlockTime(url, client)
+	if err != nil {
+		return "", err
+	}
+	return blockTime.Format(time.RFC3339Nano), nil
 }
 
 func getLatestBlock(url string, client *http.Client) (responseData Block, err error) {

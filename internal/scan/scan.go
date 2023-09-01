@@ -13,8 +13,6 @@ import (
 	"github.com/cordtus/penpal/internal/rpc"
 )
 
-var blockTimeChecked bool
-
 func Monitor(cfg config.Config) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
@@ -29,25 +27,7 @@ func Monitor(cfg config.Config) {
 		go healthCheck(cfg.Health, alertChan, client)
 	}
 
-	// Check block time once at the beginning
-	checkBlockTime(cfg.Network, client)
-
 	<-exit
-}
-
-func checkBlockTime(network config.Network, client *http.Client) {
-	for {
-		// Perform the block time check here
-		blockTime, chainID, err := rpc.GetLatestBlockTime(network.Rpcs[0], client)
-		if err != nil {
-			log.Println("Error checking block time:", err)
-		} else {
-			log.Println("Latest block time on", chainID, "i0s", blockTime)
-		}
-
-		// Sleep for the specified interval
-		time.Sleep(time.Duration(network.Interval) * time.Minute)
-	}
 }
 
 func scanValidator(validator config.Validator, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
@@ -57,7 +37,6 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 	)
 
 	for {
-		// Check for validators here
 		checkNetwork(validator, network, client, &alerted, alertChan)
 
 		if alerted && network.Interval > 2 {
@@ -69,23 +48,6 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 		// Sleep for the specified interval
 		time.Sleep(time.Duration(interval) * time.Minute)
 	}
-}
-
-func startBlockTimeChecker(network config.Network, client *http.Client) {
-	go func() {
-		for {
-			if !blockTimeChecked { // Check block time only if it hasn't been checked in the current interval
-				checkBlockTime(network, client)
-				blockTimeChecked = true // Set the flag to true after checking block time
-			}
-
-			// Sleep for the specified interval
-			time.Sleep(time.Duration(network.Interval) * time.Minute)
-
-			// Reset the blockTimeChecked flag at the start of a new interval
-			blockTimeChecked = false
-		}
-	}()
 }
 
 func checkSig(address string, block rpc.Block) bool {
@@ -170,9 +132,8 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		}
 		defer resp.Body.Close()
 
-		var blockTime time.Time
-		chainId, blockTime, err = rpc.GetLatestBlockTime(url, client)
-		if err != nil || chainId != network.ChainId {
+		blockTime, err := rpc.GetLatestBlockTime(url, client)
+		if err != nil {
 			log.Printf("Error fetching block time (attempt %d/%d) for %s: %v", rpcRetries+1, rpcMaxRetries+1, network.ChainId, err)
 			time.Sleep(time.Second * 5)
 			rpcRetries++
