@@ -49,7 +49,7 @@ func createValidatorConfig(validator config.Validator, network config.Network, n
 		Validators: []config.Validator{
 			validator,
 		},
-		Network:   network, // Use the common network config for all validators
+		Network:   network,
 		Notifiers: notifiers,
 		Health:    health,
 	}
