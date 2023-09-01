@@ -55,11 +55,25 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 	)
 	blockTimeChecked := false // Initialize the flag
 
-	for {
-		if !blockTimeChecked { // Check block time only if it hasn't been checked in the current interval
-			checkNetwork(validator, network, client, &alerted, alertChan)
-			blockTimeChecked = true // Set the flag to true after checking block time
+	// Create a goroutine for block time checking
+	go func() {
+		for {
+			if !blockTimeChecked { // Check block time only if it hasn't been checked in the current interval
+				checkBlockTime(network, client)
+				blockTimeChecked = true // Set the flag to true after checking block time
+			}
+
+			// Sleep for the specified interval
+			time.Sleep(time.Duration(network.Interval) * time.Minute)
+
+			// Reset the blockTimeChecked flag at the start of a new interval
+			blockTimeChecked = false
 		}
+	}()
+
+	for {
+		// Check for validators here
+		checkNetwork(validator, network, client, &alerted, alertChan)
 
 		if alerted && network.Interval > 2 {
 			interval = 2
@@ -69,13 +83,8 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 
 		// Sleep for the specified interval
 		time.Sleep(time.Duration(interval) * time.Minute)
-
-		// Reset the blockTimeChecked flag at the start of a new interval
-		blockTimeChecked = false
 	}
 }
-
-// Rest of the code remains the same
 
 func checkSig(address string, block rpc.Block) bool {
 	for _, sig := range block.Result.Block.LastCommit.Signatures {
