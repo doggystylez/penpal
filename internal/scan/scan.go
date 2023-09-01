@@ -13,6 +13,8 @@ import (
 	"github.com/cordtus/penpal/internal/rpc"
 )
 
+var blockTimeChecked bool
+
 func Monitor(cfg config.Config) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
@@ -53,23 +55,6 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 		interval int
 		alerted  bool
 	)
-	blockTimeChecked := false // Initialize the flag
-
-	// Create a goroutine for block time checking
-	go func() {
-		for {
-			if !blockTimeChecked { // Check block time only if it hasn't been checked in the current interval
-				checkBlockTime(network, client)
-				blockTimeChecked = true // Set the flag to true after checking block time
-			}
-
-			// Sleep for the specified interval
-			time.Sleep(time.Duration(network.Interval) * time.Minute)
-
-			// Reset the blockTimeChecked flag at the start of a new interval
-			blockTimeChecked = false
-		}
-	}()
 
 	for {
 		// Check for validators here
@@ -84,6 +69,23 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 		// Sleep for the specified interval
 		time.Sleep(time.Duration(interval) * time.Minute)
 	}
+}
+
+func startBlockTimeChecker(network config.Network, client *http.Client) {
+	go func() {
+		for {
+			if !blockTimeChecked { // Check block time only if it hasn't been checked in the current interval
+				checkBlockTime(network, client)
+				blockTimeChecked = true // Set the flag to true after checking block time
+			}
+
+			// Sleep for the specified interval
+			time.Sleep(time.Duration(network.Interval) * time.Minute)
+
+			// Reset the blockTimeChecked flag at the start of a new interval
+			blockTimeChecked = false
+		}
+	}()
 }
 
 func checkSig(address string, block rpc.Block) bool {
