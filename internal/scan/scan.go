@@ -104,13 +104,16 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 			return
 		}
 	}
-	chainId, blocktime, err := rpc.GetLatestBlockTime(url, client)
+
+	// Extract the "time" field from the JSON response
+	var blockTime time.Time
+	chainId, blockTime, err = rpc.GetLatestBlockTime(url, client)
 	if err != nil || chainId != network.ChainId {
 		log.Println("err - failed to check latest block time for", network.ChainId)
-	} else if network.StallTime != 0 && time.Since(blocktime) > time.Minute*time.Duration(network.StallTime) {
-		log.Println("last block time on", network.ChainId, "is", blocktime, "- sending alert")
+	} else if network.StallTime != 0 && time.Since(blockTime) > time.Minute*time.Duration(network.StallTime) {
+		log.Println("last block time on", network.ChainId, "is", blockTime, "- sending alert")
 		*alerted = true
-		alertChan <- alert.Stalled(blocktime, network.ChainId)
+		alertChan <- alert.Stalled(blockTime, network.ChainId)
 	}
 	heightInt, _ := strconv.Atoi(height)
 	alertChan <- backCheck(validator, network, heightInt, alerted, url, client)
