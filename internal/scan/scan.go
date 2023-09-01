@@ -35,14 +35,25 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 		interval int
 		alerted  bool
 	)
+	blockTimeChecked := false // Initialize the flag
+
 	for {
-		checkNetwork(validator, network, client, &alerted, alertChan)
+		if !blockTimeChecked { // Check block time only if it hasn't been checked in the current interval
+			checkNetwork(validator, network, client, &alerted, alertChan)
+			blockTimeChecked = true // Set the flag to true after checking block time
+		}
+
 		if alerted && network.Interval > 2 {
 			interval = 2
 		} else {
 			interval = network.Interval
 		}
+
+		// Sleep for the specified interval
 		time.Sleep(time.Duration(interval) * time.Minute)
+
+		// Reset the blockTimeChecked flag at the start of a new interval
+		blockTimeChecked = false
 	}
 }
 
