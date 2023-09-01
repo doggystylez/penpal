@@ -16,7 +16,10 @@ func GetLatestHeight(url string, client *http.Client) (chainID string, height st
 
 func GetLatestBlockTime(url string, client *http.Client) (string, time.Time, error) {
 	block, err := getLatestBlock(url, client)
-	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Time, err
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Time, nil
 }
 
 func getLatestBlock(url string, client *http.Client) (responseData Block, err error) {
