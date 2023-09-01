@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/doggystylez/penpal/internal/alert"
-	"github.com/doggystylez/penpal/internal/config"
+	"github.com/cordtus/penpal/internal/alert"
+	"github.com/cordtus/penpal/internal/config"
 )
 
 func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, client *http.Client) {

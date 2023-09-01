@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/doggystylez/penpal/internal/alert"
-	"github.com/doggystylez/penpal/internal/config"
-	"github.com/doggystylez/penpal/internal/rpc"
+	"github.com/cordtus/penpal/internal/alert"
+	"github.com/cordtus/penpal/internal/config"
+	"github.com/cordtus/penpal/internal/rpc"
 )
 
 func Monitor(cfg config.Config) {

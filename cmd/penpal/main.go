@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/doggystylez/penpal/internal/config"
-	"github.com/doggystylez/penpal/internal/scan"
+	"github.com/cordtus/penpal/internal/config"
+	"github.com/cordtus/penpal/internal/scan"
 )
 
 func main() {
@@ -36,18 +36,32 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	for _, network := range cfg.Networks {
-		if network.StallTime == 1 {
-			fmt.Println("warning! stall time for", network.Name, "is set to 1 minutes, this may cause more frequent false alerts")
-		} else if network.StallTime == 0 {
-			fmt.Println("warning! stall check for", network.Name, "is disabled")
-		}
-		if !network.RpcAlert {
-			fmt.Println("warning! rpc alerts for", network.Name, "are disabled")
-		}
-		if network.Reverse {
-			fmt.Println("warning!", network.Name, "running in reverse mode 🔄")
-		}
+
+	for _, validator := range cfg.Validators {
+		go func(validator config.Validator) {
+			validatorConfig := createValidatorConfig(validator, cfg.CommonRPCs)
+			scan.Monitor(validatorConfig)
+		}(validator)
 	}
-	scan.Monitor(cfg)
+	select {}
+}
+
+func createValidatorConfig(validator config.Validator, commonRPCs []string) config.Config {
+	return config.Config{
+		Networks: []config.Network{
+			{
+				Name:           validator.Moniker,
+				ChainId:        "common-chain-id", // Replace with the actual chain ID
+				Address:        validator.Address,
+				Rpcs:           commonRPCs,
+				RpcAlert:       true,
+				BackCheck:      10,
+				AlertThreshold: 5,
+				Interval:       15,
+				StallTime:      30,
+			},
+		},
+		Notifiers: cfg.Notifiers, // You can reuse the notifiers from the common config
+		Health:    cfg.Health,    // You can reuse the health config from the common config
+	}
 }

@@ -3,7 +3,7 @@
 lightweight tendermint signing monitor
 ## build
 ```
-git clone https://github.com/doggystylez/penpal.git
+git clone https://github.com/cordtus/penpal.git
 
 cd penpal
 

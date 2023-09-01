@@ -28,30 +28,31 @@ func Load(file string) (config Config, err error) {
 }
 
 func (c Config) validate() string {
-	if len(c.Networks) == 0 {
-		return "no networks configured"
+	if len(c.Validators) == 0 {
+		return "no validators configured"
 	}
-	for _, network := range c.Networks {
-		if network.Name == "" {
+	for _, validator := range c.Validators {
+		if validator.Name == "" {
 			return "name missing"
-		} else if network.Address == "" {
+		} else if validator.Address == "" {
 			return "address missing"
-		} else if network.ChainId == "" {
-			return "chain-id missing for " + network.Name
-		} else if network.BackCheck <= 0 {
-			return "backcheck missing or invalid for " + network.Name
-		} else if network.AlertThreshold <= 0 || network.AlertThreshold > network.BackCheck {
-			return "alert threshold missing or invalid for " + network.Name
-		} else if network.Interval <= 0 {
-			return "check interval missing or invalid for " + network.Name
-		} else if network.StallTime < 0 {
-			return "stall time invalid for " + network.Name
-		} else {
-			for _, rpc := range network.Rpcs {
-				parsed, err := url.Parse(rpc)
-				if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
-					return "rpc \"" + rpc + "\" invalid for" + network.Name
-				}
+		}
+	}
+	if c.Network.ChainId == "" {
+		return "chain-id missing for the network"
+	} else if c.Network.BackCheck <= 0 {
+		return "backcheck missing or invalid for the network"
+	} else if c.Network.AlertThreshold <= 0 || c.Network.AlertThreshold > c.Network.BackCheck {
+		return "alert threshold missing or invalid for the network"
+	} else if c.Network.Interval <= 0 {
+		return "check interval missing or invalid for the network"
+	} else if c.Network.StallTime < 0 {
+		return "stall time invalid for the network"
+	} else {
+		for _, rpc := range c.Network.Rpcs {
+			parsed, err := url.Parse(rpc)
+			if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
+				return "rpc \"" + rpc + "\" invalid for the network"
 			}
 		}
 	}
@@ -79,27 +80,24 @@ func New(file string) (err error) {
 	encoder := json.NewEncoder(configFile)
 	encoder.SetIndent("", "  ")
 	err = encoder.Encode(Config{
-		Networks: []Network{{
-			Name:           "Network1",
+		Validators: []Validator{
+			{
+				Name:    "Validator1",
+				Address: "AAAABBBBCCCCDDDD1",
+			},
+			{
+				Name:    "Validator2",
+				Address: "AAAABBBBCCCCDDDD2",
+			},
+		},
+		Network: Network{
 			ChainId:        "network-1",
-			Address:        "AAAABBBBCCCCDDDD",
 			Rpcs:           []string{"rpc1", "rpc2"},
-			RpcAlert:       true,
 			BackCheck:      10,
 			AlertThreshold: 5,
 			Interval:       15,
 			StallTime:      30,
-		}, {
-			Name:           "Network2",
-			ChainId:        "network-2",
-			Address:        "AAAABBBBCCCCDDDD",
-			Rpcs:           []string{"rpc1", "rpc2"},
-			RpcAlert:       true,
-			BackCheck:      5,
-			AlertThreshold: 5,
-			Interval:       15,
-			StallTime:      30,
-		}},
+		},
 		Notifiers: Notifiers{
 			Telegram: struct {
 				Key  string `json:"key,omitempty"`
@@ -112,7 +110,8 @@ func New(file string) (err error) {
 				Webhook string `json:"webhook"`
 			}{
 				Webhook: "webhook_url",
-			}},
+			},
+		},
 		Health: Health{
 			Interval: 1,
 			Port:     "8080",
