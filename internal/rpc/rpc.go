@@ -22,15 +22,7 @@ func GetLatestBlockTime(url string, client *http.Client) (chainID string, blockT
 	if err != nil {
 		return "", time.Time{}, err
 	}
-	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Time, nil
-}
-
-func GetLatestBlockTimeFromRPC(url string, client *http.Client) (string, error) {
-	blockTime, err := GetLatestBlockTime(url, client)
-	if err != nil {
-		return "", err
-	}
-	return blockTime.Format(time.RFC3339Nano), nil
+	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Time, err
 }
 
 func getLatestBlock(url string, client *http.Client) (responseData Block, err error) {

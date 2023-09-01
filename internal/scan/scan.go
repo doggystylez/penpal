@@ -132,14 +132,6 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		}
 		defer resp.Body.Close()
 
-		blockTime, err := rpc.GetLatestBlockTime(url, client)
-		if err != nil {
-			log.Printf("Error fetching block time (attempt %d/%d) for %s: %v", rpcRetries+1, rpcMaxRetries+1, network.ChainId, err)
-			time.Sleep(time.Second * 5)
-			rpcRetries++
-			continue
-		}
-
 		log.Printf("Latest block time on %s is %s", network.ChainId, blockTime)
 
 		if network.StallTime != 0 && time.Since(blockTime) > time.Minute*time.Duration(network.StallTime) {
