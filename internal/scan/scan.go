@@ -142,18 +142,18 @@ func backCheck(validator config.Validator, network config.Network, height int, a
 	} else if !network.Reverse {
 		if network.BackCheck-signed > network.AlertThreshold {
 			*alerted = true
-			return alert.Missed((network.BackCheck - signed), network.BackCheck, network.ChainId)
+			return alert.Missed(validator.Name, (network.BackCheck - signed), network.BackCheck, validator.Name)
 		} else if *alerted {
 			*alerted = false
 			return alert.Cleared(signed, network.BackCheck, network.ChainId, validator.Name)
 		} else {
-			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + network.ChainId)
+			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + network.ChainId + " for validator " + validator.Name)
 		}
 	} else {
 		if signed > 1 {
 			return alert.Signed(signed, network.BackCheck, network.ChainId, validator.Name)
 		} else {
-			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + network.ChainId)
+			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + network.ChainId + " for validator " + validator.Name)
 		}
 	}
 }
