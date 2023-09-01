@@ -13,11 +13,27 @@ import (
 	"github.com/cordtus/penpal/internal/config"
 )
 
-const retries = 3
+const (
+	retries         = 3
+	maxRepeatAlerts = 5
+	initialBackoff  = 1 * time.Second
+)
 
 func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Client) {
+	backoffAttempts := make(map[string]int) // Track backoff attempts for each alert
 	for {
 		a := <-alertChan
+		if a.AlertType == None {
+			log.Println(a.Message)
+			continue
+		}
+
+		// Check if we've reached the maximum repeat for this alert
+		if backoffAttempts[a.Message] >= maxRepeatAlerts {
+			log.Printf("Maximum repeat attempts reached for alert: %s. Skipping further notifications.", a.Message)
+			continue
+		}
+
 		var notifications []notification
 		if notifiers.Telegram.Key != "" {
 			notifications = append(notifications, telegramNoti(notifiers.Telegram.Key, notifiers.Telegram.Chat, a.Message))
@@ -25,22 +41,25 @@ func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Clie
 		if notifiers.Discord.Webhook != "" {
 			notifications = append(notifications, discordNoti(notifiers.Discord.Webhook, a.Message))
 		}
-		if a.AlertType != None {
-			for _, n := range notifications {
-				go func(b notification) {
-					for i := 0; i < retries; i++ {
-						err := b.send(client)
-						if err == nil {
-							log.Println("sent alert to", b.Type, a.Message)
-							return
-						}
-						time.Sleep(1 * time.Second)
+
+		for _, n := range notifications {
+			go func(b notification, alertMsg string) {
+				backoffDuration := initialBackoff
+				for i := 0; i < retries; i++ {
+					err := b.send(client)
+					if err == nil {
+						log.Println("Sent alert to", b.Type, alertMsg)
+						delete(backoffAttempts, alertMsg) // Reset backoff attempts on success
+						return
 					}
-					log.Println("error sending message", a.Message, "to", b.Type, "after", retries, "tries")
-				}(n)
-			}
-		} else {
-			log.Println(a.Message)
+					time.Sleep(backoffDuration)
+					backoffDuration *= 2 // Exponential backoff
+					log.Printf("Error sending message %s to %s. Retrying in %v", alertMsg, b.Type, backoffDuration)
+				}
+				// Mark that we've attempted the alert
+				backoffAttempts[alertMsg]++
+				log.Printf("Error sending message %s to %s after maximum retries", alertMsg, b.Type)
+			}(n, a.Message)
 		}
 	}
 }
