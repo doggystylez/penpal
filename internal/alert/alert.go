@@ -95,8 +95,8 @@ func RpcDown(url string) Alert {
 	return Alert{AlertType: RpcError, Message: "📡 rpc " + url + " is down or malfunctioning "}
 }
 
-func Missed(missed int, check int, Name string) Alert {
-	return Alert{AlertType: Miss, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks for validator " + Name}
+func Missed(missed int, check int, validator string) Alert {
+	return Alert{AlertType: Miss, Message: validator + "<❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks for validator "}
 }
 
 func Stalled(blocktime time.Time, ChainId string) Alert {
