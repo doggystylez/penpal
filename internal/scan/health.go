@@ -57,27 +57,28 @@ func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, client *http.C
 
 func healthServer(port string) {
 	once := sync.Once{}
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("agent") == "penpal" {
-			_, err := w.Write([]byte("OK"))
-			if err != nil {
-				log.Println("failed writing http response", err)
-			}
-		} else {
-			w.WriteHeader(http.StatusUnauthorized)
-			_, err := w.Write([]byte("NOT AUTHORIZED"))
-			if err != nil {
-				log.Println("failed writing http response", err)
-			}
-		}
-	})
-
-	server := &http.Server{
-		Addr:              ":" + port,
-		ReadHeaderTimeout: 5 * time.Second,
-	}
 
 	once.Do(func() {
+		http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+			if r.Header.Get("agent") == "penpal" {
+				_, err := w.Write([]byte("OK"))
+				if err != nil {
+					log.Println("failed writing http response", err)
+				}
+			} else {
+				w.WriteHeader(http.StatusUnauthorized)
+				_, err := w.Write([]byte("NOT AUTHORIZED"))
+				if err != nil {
+					log.Println("failed writing http response", err)
+				}
+			}
+		})
+
+		server := &http.Server{
+			Addr:              ":" + port,
+			ReadHeaderTimeout: 5 * time.Second,
+		}
+
 		if err := server.ListenAndServe(); err != nil {
 			log.Println("http server failed", err)
 			return
