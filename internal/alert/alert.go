@@ -96,7 +96,7 @@ func RpcDown(url string) Alert {
 }
 
 func Missed(validatorName string, missed int, check int, validator string) Alert {
-	return Alert{AlertType: Miss, Message: validatorName + "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks for validator " + validator}
+	return Alert{AlertType: Miss, Message: validatorName + "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks "}
 }
 
 func Stalled(blocktime time.Time, ChainId string) Alert {
