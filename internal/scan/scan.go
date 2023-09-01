@@ -1,6 +1,7 @@
 package scan
 
 import (
+	"context"
 	"log"
 	"math/rand"
 	"net/http"
@@ -63,30 +64,36 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		url     string
 		err     error
 	)
+	rpcTimeout := time.Second // Set the timeout for fetching the block time to 1 second
+	rpcRetries := 0
+	rpcMaxRetries := 3 // You can adjust this value if needed
+
 	rpcs := network.Rpcs
-	for retry := 0; retry <= maxRetries; retry++ {
+	for rpcRetries <= rpcMaxRetries {
 		if len(rpcs) > 1 {
-			var i int
-			var nRpcs []string
-			if len(rpcs) == 0 && !*alerted && network.RpcAlert {
-				*alerted = true
-				alertChan <- alert.NoRpc(network.ChainId)
-				return
-			} else {
-				i = rand.Intn(len(rpcs)) //nolint
-				for _, r := range rpcs {
-					if r != rpcs[i] {
-						nRpcs = append(nRpcs, r)
+			for {
+				var i int
+				var nRpcs []string
+				if len(rpcs) == 0 && !*alerted && network.RpcAlert {
+					*alerted = true
+					alertChan <- alert.NoRpc(network.ChainId)
+					return
+				} else {
+					i = rand.Intn(len(rpcs)) //nolint
+					for _, r := range rpcs {
+						if r != rpcs[i] {
+							nRpcs = append(nRpcs, r)
+						}
 					}
-				}
-				url = rpcs[i]
-				rpcs = nRpcs
-				chainId, height, err = rpc.GetLatestHeight(url, client)
-				if err != nil {
-					continue
-				}
-				if chainId == network.ChainId {
-					break
+					url = rpcs[i]
+					rpcs = nRpcs
+					chainId, height, err = rpc.GetLatestHeight(url, client)
+					if err != nil {
+						continue
+					}
+					if chainId == network.ChainId {
+						break
+					}
 				}
 			}
 		} else if len(rpcs) == 1 {
@@ -106,12 +113,16 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 			}
 		}
 
-		// Attempt to fetch the block time
+		// Attempt to fetch the block time with the adjusted timeout
+		ctx, cancel := context.WithTimeout(context.Background(), rpcTimeout)
+		defer cancel()
+
 		var blockTime time.Time
-		chainId, blockTime, err = rpc.GetLatestBlockTime(url, client)
+		chainId, blockTime, err = rpc.GetLatestBlockTime(url, client.WithContext(ctx))
 		if err != nil || chainId != network.ChainId {
-			log.Printf("Error fetching block time (attempt %d/%d) for %s: %v", retry+1, maxRetries+1, network.ChainId, err)
+			log.Printf("Error fetching block time (attempt %d/%d) for %s: %v", rpcRetries+1, rpcMaxRetries+1, network.ChainId, err)
 			time.Sleep(time.Second * 5) // Wait before retrying
+			rpcRetries++
 			continue
 		}
 
