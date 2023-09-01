@@ -27,25 +27,14 @@ func Monitor(cfg config.Config) {
 		go healthCheck(cfg.Health, alertChan, client)
 	}
 
-	// Check block time once per cycle
+	// Check block time once at the beginning
 	checkBlockTime(cfg.Network, client)
 
 	<-exit
 }
 
 func checkBlockTime(network config.Network, client *http.Client) {
-	for {
-		// Perform the block time check here
-		blockTime, chainID, err := rpc.GetLatestBlockTime(network.Rpcs[0], client)
-		if err != nil {
-			log.Println("Error checking block time:", err)
-		} else {
-			log.Println("Latest block time on", chainID, "is", blockTime)
-		}
-
-		// Sleep for the specified interval
-		time.Sleep(time.Duration(network.Interval) * time.Minute)
-	}
+	panic("unimplemented")
 }
 
 func scanValidator(validator config.Validator, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
@@ -74,6 +63,8 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 		blockTimeChecked = false
 	}
 }
+
+// Rest of the code remains the same
 
 func checkSig(address string, block rpc.Block) bool {
 	for _, sig := range block.Result.Block.LastCommit.Signatures {
