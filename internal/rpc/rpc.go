@@ -11,6 +11,9 @@ import (
 
 func GetLatestHeight(url string, client *http.Client) (chainID string, height string, err error) {
 	block, err := getLatestBlock(url, client)
+	if err != nil {
+		return "", "", err
+	}
 	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Height, err
 }
 
