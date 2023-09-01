@@ -132,7 +132,7 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		defer resp.Body.Close()
 
 		var blockTime time.Time
-		chainId, blockTime, err = rpc.GetLatestBlockTime(url, client.WithContext(req.Context()))
+		chainId, blockTime, err = rpc.GetLatestBlockTime(url, client)
 		if err != nil || chainId != network.ChainId {
 			log.Printf("Error fetching block time (attempt %d/%d) for %s: %v", rpcRetries+1, rpcMaxRetries+1, network.ChainId, err)
 			time.Sleep(time.Second * 5) // Wait before retrying
