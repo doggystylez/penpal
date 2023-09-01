@@ -60,13 +60,12 @@ const maxRetries = 3
 func checkNetwork(validator config.Validator, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
 	var (
 		chainId string
-		height  string
+		height  string // Include the height variable
 		url     string
 		err     error
 	)
-	rpcTimeout := 1 * time.Second // Set the timeout for fetching the block time to 1 second
 	rpcRetries := 0
-	rpcMaxRetries := 3 // You can adjust this value if needed
+	rpcMaxRetries := 3
 
 	rpcs := network.Rpcs
 	for rpcRetries <= rpcMaxRetries {
@@ -79,7 +78,7 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 					alertChan <- alert.NoRpc(network.ChainId)
 					return
 				} else {
-					i = rand.Intn(len(rpcs)) //nolint
+					i = rand.Intn(len(rpcs))
 					for _, r := range rpcs {
 						if r != rpcs[i] {
 							nRpcs = append(nRpcs, r)
@@ -117,7 +116,7 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, url, nil)
 		if err != nil {
 			log.Printf("Error creating request: %v", err)
-			time.Sleep(time.Second * 5) // Wait before retrying
+			time.Sleep(time.Second * 5)
 			rpcRetries++
 			continue
 		}
@@ -125,17 +124,17 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		resp, err := client.Do(req)
 		if err != nil {
 			log.Printf("Error performing request: %v", err)
-			time.Sleep(time.Second * 5) // Wait before retrying
+			time.Sleep(time.Second * 5)
 			rpcRetries++
 			continue
 		}
 		defer resp.Body.Close()
 
 		var blockTime time.Time
-		chainId, blockTime, err = rpc.GetLatestBlockTime(url, client)
+		chainId, _, err = rpc.GetLatestBlockTime(url, client.WithContext(req.Context())) // Removed height from this line
 		if err != nil || chainId != network.ChainId {
 			log.Printf("Error fetching block time (attempt %d/%d) for %s: %v", rpcRetries+1, rpcMaxRetries+1, network.ChainId, err)
-			time.Sleep(time.Second * 5) // Wait before retrying
+			time.Sleep(time.Second * 5)
 			rpcRetries++
 			continue
 		}
@@ -143,13 +142,15 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 		// Block time fetched successfully, process it
 		log.Printf("Latest block time on %s is %s", network.ChainId, blockTime)
 
-		if network.StallTime != 0 && time.Since(blockTime) > time.Minute*time.Duration(network.StallTime) {
-			log.Println("last block time on", network.ChainId, "is", blockTime, "- sending alert")
-			*alerted = true
-			alertChan <- alert.Stalled(blockTime, network.ChainId)
+		if network.StallTime != 0 {
+			blockHeight, _ := strconv.Atoi(height) // Convert height to an integer
+			if time.Since(blockTime) > time.Minute*time.Duration(network.StallTime) {
+				log.Println("last block time on", network.ChainId, "is", blockTime, "- sending alert")
+				*alerted = true
+				alertChan <- alert.Stalled(blockTime, network.ChainId)
+			}
+			alertChan <- backCheck(validator, network, blockHeight, alerted, url, client) // Use blockHeight here
 		}
-		heightInt, _ := strconv.Atoi(height)
-		alertChan <- backCheck(validator, network, heightInt, alerted, url, client)
 		return
 	}
 
