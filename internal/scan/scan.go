@@ -35,8 +35,13 @@ func Monitor(cfg config.Config) {
 
 func checkBlockTime(network config.Network, client *http.Client) {
 	for {
-		// Perform some placeholder logic here
-		log.Println("Checking block time...")
+		// Perform the block time check here
+		blockTime, chainID, err := rpc.GetLatestBlockTime(network.Rpcs[0], client)
+		if err != nil {
+			log.Println("Error checking block time:", err)
+		} else {
+			log.Println("Latest block time on", chainID, "is", blockTime)
+		}
 
 		// Sleep for the specified interval
 		time.Sleep(time.Duration(network.Interval) * time.Minute)
