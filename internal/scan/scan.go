@@ -18,8 +18,8 @@ func Monitor(cfg config.Config) {
 	client := &http.Client{
 		Timeout: time.Second * 5,
 	}
-	for _, network := range cfg.Network {
-		go scanNetwork(network, alertChan, client)
+	for _, validator := range cfg.Validators {
+		go scanValidator(validator, cfg.Network, alertChan, client)
 		go alert.Watch(alertChan, cfg.Notifiers, client)
 	}
 	if cfg.Health.Interval != 0 {
@@ -29,13 +29,13 @@ func Monitor(cfg config.Config) {
 	<-exit
 }
 
-func scanNetwork(network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
+func scanValidator(validator config.Validator, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
 	var (
 		interval int
 		alerted  bool
 	)
 	for {
-		checkNetwork(network, client, &alerted, alertChan)
+		checkNetwork(validator, network, client, &alerted, alertChan)
 		if alerted && network.Interval > 2 {
 			interval = 2
 		} else {
@@ -45,7 +45,16 @@ func scanNetwork(network config.Network, alertChan chan<- alert.Alert, client *h
 	}
 }
 
-func checkNetwork(network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
+func checkSig(address string, block rpc.Block) bool {
+	for _, sig := range block.Result.Block.LastCommit.Signatures {
+		if sig.ValidatorAddress == address {
+			return true
+		}
+	}
+	return false
+}
+
+func checkNetwork(validator config.Validator, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
 	var (
 		chainId string
 		height  string
@@ -60,7 +69,6 @@ func checkNetwork(network config.Network, client *http.Client, alerted *bool, al
 			if len(rpcs) == 0 && !*alerted && network.RpcAlert {
 				*alerted = true
 				alertChan <- alert.NoRpc(network.ChainId)
-
 				return
 			} else {
 				i = rand.Intn(len(rpcs)) //nolint
@@ -105,56 +113,47 @@ func checkNetwork(network config.Network, client *http.Client, alerted *bool, al
 		alertChan <- alert.Stalled(blocktime, network.ChainId)
 	}
 	heightInt, _ := strconv.Atoi(height)
-	alertChan <- backCheck(network, heightInt, alerted, url, client)
+	alertChan <- backCheck(validator, network, heightInt, alerted, url, client)
 }
 
-func backCheck(cfg config.Network, height int, alerted *bool, url string, client *http.Client) alert.Alert {
+func backCheck(validator config.Validator, network config.Network, height int, alerted *bool, url string, client *http.Client) alert.Alert {
 	var (
 		signed    int
 		rpcErrors int
 	)
-	for checkHeight := height - cfg.BackCheck + 1; checkHeight <= height; checkHeight++ {
+	for checkHeight := height - network.BackCheck + 1; checkHeight <= height; checkHeight++ {
 		block, err := rpc.GetBlockFromHeight(strconv.Itoa(checkHeight), url, client)
 		if err != nil || block.Error != nil {
 			rpcErrors++
-			cfg.BackCheck--
+			network.BackCheck--
 			continue
 		}
-		if checkSig(cfg.Address, block) {
+		if checkSig(validator.Address, block) {
 			signed++
 		}
 	}
-	if rpcErrors > cfg.BackCheck || cfg.BackCheck == 0 && cfg.RpcAlert {
+	if rpcErrors > network.BackCheck || network.BackCheck == 0 && network.RpcAlert {
 		if !*alerted {
 			*alerted = true
 			return alert.RpcDown(url)
 		} else {
-			return alert.Nil("repeat alert suppressed - RpcDown on " + cfg.ChainId)
+			return alert.Nil("repeat alert suppressed - RpcDown on " + network.ChainId)
 		}
-	} else if !cfg.Reverse {
-		if cfg.BackCheck-signed > cfg.AlertThreshold {
+	} else if !network.Reverse {
+		if network.BackCheck-signed > network.AlertThreshold {
 			*alerted = true
-			return alert.Missed((cfg.BackCheck - signed), cfg.BackCheck, cfg.ChainId)
+			return alert.Missed((network.BackCheck - signed), network.BackCheck, network.ChainId)
 		} else if *alerted {
 			*alerted = false
-			return alert.Cleared(signed, cfg.BackCheck, cfg.ChainId)
+			return alert.Cleared(signed, network.BackCheck, network.ChainId, validator.Name)
 		} else {
-			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed on " + cfg.ChainId)
+			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + network.ChainId)
 		}
 	} else {
 		if signed > 1 {
-			return alert.Signed(signed, cfg.BackCheck, cfg.ChainId)
+			return alert.Signed(signed, network.BackCheck, network.ChainId, validator.Name)
 		} else {
-			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(cfg.BackCheck) + " signed on " + cfg.ChainId)
+			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + network.ChainId)
 		}
 	}
-}
-
-func checkSig(address string, block rpc.Block) bool {
-	for _, sig := range block.Result.Block.LastCommit.Signatures {
-		if sig.ValidatorAddress == address {
-			return true
-		}
-	}
-	return false
 }

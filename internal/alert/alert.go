@@ -87,20 +87,20 @@ func Signed(signed int, check int, chain, validator string) Alert {
 	return Alert{AlertType: Clear, Message: "😌 blocks! found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validator + " on chain " + chain}
 }
 
-func NoRpc(chain, validator string) Alert {
-	return Alert{AlertType: RpcError, Message: "📡 no rpcs available for validator " + validator + " on chain " + chain}
+func NoRpc(ChainId string) Alert {
+	return Alert{AlertType: RpcError, Message: "📡 no rpcs available for " + ChainId}
 }
 
-func RpcDown(url, chain, validator string) Alert {
-	return Alert{AlertType: RpcError, Message: "📡 rpc " + url + " is down or malfunctioning for validator " + validator + " on chain " + chain}
+func RpcDown(url string) Alert {
+	return Alert{AlertType: RpcError, Message: "📡 rpc " + url + " is down or malfunctioning "}
 }
 
-func Missed(missed int, check int, chain, validator string) Alert {
-	return Alert{AlertType: Miss, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks for validator " + validator + " on chain " + chain}
+func Missed(missed int, check int, Name string) Alert {
+	return Alert{AlertType: Miss, Message: "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks for validator " + Name}
 }
 
-func Stalled(blocktime time.Time, chain, validator string) Alert {
-	return Alert{AlertType: Stall, Message: "⏰ warning - last block found for validator " + validator + " on chain " + chain + " was " + blocktime.Format(time.RFC1123)}
+func Stalled(blocktime time.Time, ChainId string) Alert {
+	return Alert{AlertType: Stall, Message: "⏰ warning - last block found for " + ChainId + " was " + blocktime.Format(time.RFC1123)}
 }
 
 func Healthy(interval time.Duration, address string) Alert {
