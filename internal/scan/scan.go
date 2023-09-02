@@ -1,9 +1,6 @@
 package scan
 
 import (
-	"context"
-	"log"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,32 +10,22 @@ import (
 	"github.com/cordtus/penpal/internal/rpc"
 )
 
-func Monitor(cfg config.Config) {
+func Monitor(cfg config.Config, latestBlock rpc.Block) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
 	client := &http.Client{
 		Timeout: time.Second * 5,
 	}
-	latestBlock := fetchLatestBlock(cfg.Network.Rpcs[0], client) // Fetch the latest block data once
 
 	for _, validator := range cfg.Validators {
 		go scanValidator(validator, cfg.Network, alertChan, client, latestBlock)
 	}
 	if cfg.Health.Interval != 0 {
 		go healthServer(cfg.Health.Port)
-		go healthCheck(cfg.Health, alertChan, client, latestBlock)
+		go healthCheck(cfg.Health, alertChan, client)
 	}
 
 	<-exit
-}
-
-func fetchLatestBlock(url string, client *http.Client) rpc.Block {
-	block, err := rpc.GetLatestBlock(url, client)
-	if err != nil {
-		log.Printf("Error fetching latest block: %v", err)
-		return rpc.Block{}
-	}
-	return block
 }
 
 func scanValidator(validator config.Validator, network config.Network, alertChan chan<- alert.Alert, client *http.Client, latestBlock rpc.Block) {
@@ -56,22 +43,14 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 			interval = network.Interval
 		}
 
-		// Sleep for the specified interval
 		time.Sleep(time.Duration(interval) * time.Minute)
 	}
 }
 
 func checkNetwork(validator config.Validator, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, latestBlock rpc.Block) {
-	// Use the latestBlock data here for network checks
 	chainID := latestBlock.Result.Block.Header.ChainID
 	blockTime := latestBlock.Result.Block.Header.Time
 
-	// The rest of your checkNetwork function remains the same
-	// ...
-
 	heightInt, _ := strconv.Atoi(latestBlock.Result.Block.Header.Height)
 	alertChan <- backCheck(validator, network, heightInt, alerted, network.Rpcs[0], client)
-	// ...
 }
-
-// ...

@@ -49,10 +49,11 @@ func (c Config) validate() string {
 	} else if c.Network.StallTime < 0 {
 		return "stall time invalid for the network"
 	} else {
-		for _, rpc := range c.Network.Rpcs {
-			parsed, err := url.Parse(rpc)
-			if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "https" && parsed.Scheme != "http") {
-				return "rpc \"" + rpc + "\" invalid for the network"
+		for _, rpcURL := range c.Network.Rpcs {
+			// Use the URL package to parse and validate the RPC URL
+			parsedURL, err := url.Parse(rpcURL)
+			if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" || (parsedURL.Scheme != "https" && parsedURL.Scheme != "http") {
+				return "rpc \"" + rpcURL + "\" invalid for the network"
 			}
 		}
 	}

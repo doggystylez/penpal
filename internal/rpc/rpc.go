@@ -9,8 +9,13 @@ import (
 	"time"
 )
 
+func GetLatestBlock(url string, client *http.Client) (responseData Block, err error) {
+	err = getByURLAndUnmarshal(&responseData, url+"/block", client)
+	return responseData, err
+}
+
 func GetLatestHeight(url string, client *http.Client) (chainID string, height string, err error) {
-	block, err := getLatestBlock(url, client)
+	block, err := GetLatestBlock(url, client)
 	if err != nil {
 		return "", "", err
 	}
@@ -18,32 +23,27 @@ func GetLatestHeight(url string, client *http.Client) (chainID string, height st
 }
 
 func GetLatestBlockTime(url string, client *http.Client) (chainID string, blockTime time.Time, err error) {
-	block, err := getLatestBlock(url, client)
+	block, err := GetLatestBlock(url, client)
 	if err != nil {
 		return "", time.Time{}, err
 	}
 	return block.Result.Block.Header.ChainID, block.Result.Block.Header.Time, err
 }
 
-func getLatestBlock(url string, client *http.Client) (responseData Block, err error) {
-	err = getByUrlAndUnmarshall(&responseData, url+"/block", client)
-	return
-}
-
 func GetBlockFromHeight(height string, url string, client *http.Client) (responseData Block, err error) {
-	err = getByUrlAndUnmarshall(&responseData, url+"/block?height="+height, client)
-	return
+	err = getByURLAndUnmarshal(&responseData, url+"/block?height="+height, client)
+	return responseData, err
 }
 
-func getByUrlAndUnmarshall(data interface{}, url string, client *http.Client) (err error) {
+func getByURLAndUnmarshal(data interface{}, url string, client *http.Client) (err error) {
 	r := &strings.Reader{}
 	req, err := http.NewRequestWithContext(context.Background(), "GET", url, r)
 	if err != nil {
-		return
+		return err
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return
+		return err
 	}
 	defer func() {
 		err = resp.Body.Close()
@@ -53,8 +53,8 @@ func getByUrlAndUnmarshall(data interface{}, url string, client *http.Client) (e
 	}()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return
+		return err
 	}
 	err = json.Unmarshal(body, &data)
-	return
+	return err
 }
