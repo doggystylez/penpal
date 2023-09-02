@@ -43,10 +43,14 @@ func main() {
 	latestBlock := FetchLatestBlock(cfg.Network.Rpcs[0])
 
 	for _, validator := range cfg.Validators {
-		go scan.Monitor(validator, latestBlock)
+
+		validatorConfig := createValidatorConfig(validator, cfg.Network, cfg.Notifiers, cfg.Health, latestBlock)
+
+		go scan.Monitor(validatorConfig)
 	}
 
 	select {}
+
 }
 
 func FetchLatestBlock(url string) rpc.Block {
@@ -63,10 +67,10 @@ func FetchLatestBlock(url string) rpc.Block {
 
 func createValidatorConfig(validator config.Validator, network config.Network, notifiers config.Notifiers, health config.Health, latestBlock rpc.Block) config.Config {
 	return config.Config{
-		Validators:  []config.Validator{validator},
-		Network:     network,
-		Notifiers:   notifiers,
-		Health:      health,
-		LatestBlock: latestBlock,
+		Validators: []config.Validator{validator},
+		Network:    network,
+		Notifiers:  notifiers,
+		Health:     health,
+		Block:      config.Block{},
 	}
 }

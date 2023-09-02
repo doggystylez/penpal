@@ -54,3 +54,7 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 	heightInt, _ := strconv.Atoi(latestBlock.Result.Block.Header.Height)
 	alertChan <- backCheck(validator, network, heightInt, alerted, network.Rpcs[0], client)
 }
+
+func backCheck(validator config.Validator, network config.Network, heightInt int, alerted *bool, s string, client *http.Client) {
+	panic("unimplemented")
+}
