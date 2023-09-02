@@ -37,19 +37,34 @@ func main() {
 		return
 	}
 
+	latestBlock := fetchLatestBlock(cfg.Network.Rpcs[0]) // Fetch the latest block data once
+
 	for _, validator := range cfg.Validators {
-		validatorConfig := createValidatorConfig(validator, cfg.Network, cfg.Notifiers, cfg.Health)
+		validatorConfig := createValidatorConfig(validator, cfg.Network, cfg.Notifiers, cfg.Health, latestBlock)
 		go scan.Monitor(validatorConfig)
 	}
 
 	select {}
 }
 
-func createValidatorConfig(validator config.Validator, network config.Network, notifiers config.Notifiers, health config.Health) config.Config {
+func createValidatorConfig(validator config.Validator, network config.Network, notifiers config.Notifiers, health config.Health, latestBlock rpc.Block) config.Config {
 	return config.Config{
 		Validators: []config.Validator{validator}, // Each validator has its own configuration
 		Network:    network,                       // Use the common network config for all validators
 		Notifiers:  notifiers,
 		Health:     health,
+		LatestBlock: latestBlock, // Pass the latest block data
 	}
+}
+
+func fetchLatestBlock(url string) rpc.Block {
+	client := &http.Client{
+		Timeout: time.Second * 5,
+	}
+	block, err := rpc.GetLatestBlock(url, client)
+	if err != nil {
+		fmt.Println("Error fetching latest block:", err)
+		return rpc.Block{}
+	}
+	return block
 }
