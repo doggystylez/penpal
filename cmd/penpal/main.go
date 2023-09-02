@@ -3,10 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http" // Import the "http" package
 	"os"
 	"strings"
+	"time" // Import the "time" package
 
 	"github.com/cordtus/penpal/internal/config"
+	"github.com/cordtus/penpal/internal/rpc" // Import the "rpc" package
 	"github.com/cordtus/penpal/internal/scan"
 )
 
@@ -49,10 +52,10 @@ func main() {
 
 func createValidatorConfig(validator config.Validator, network config.Network, notifiers config.Notifiers, health config.Health, latestBlock rpc.Block) config.Config {
 	return config.Config{
-		Validators: []config.Validator{validator}, // Each validator has its own configuration
-		Network:    network,                       // Use the common network config for all validators
-		Notifiers:  notifiers,
-		Health:     health,
+		Validators:  []config.Validator{validator}, // Each validator has its own configuration
+		Network:     network,                       // Use the common network config for all validators
+		Notifiers:   notifiers,
+		Health:      health,
 		LatestBlock: latestBlock, // Pass the latest block data
 	}
 }
@@ -61,7 +64,7 @@ func fetchLatestBlock(url string) rpc.Block {
 	client := &http.Client{
 		Timeout: time.Second * 5,
 	}
-	block, err := rpc.GetLatestBlock(url, client)
+	block, err := rpc.fetchLatestBlock(url, client)
 	if err != nil {
 		fmt.Println("Error fetching latest block:", err)
 		return rpc.Block{}
