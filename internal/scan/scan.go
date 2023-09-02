@@ -49,7 +49,7 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 
 func checkNetwork(validator config.Validator, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, latestBlock rpc.Block) {
 	chainID := latestBlock.Result.Block.Header.ChainID
-	blockTime := latestBlock.Result.Block.Header.Time
+	LatestBlockTime := latestBlock.Result.Block.Header.Time
 
 	heightInt, _ := strconv.Atoi(latestBlock.Result.Block.Header.Height)
 	alertChan <- backCheck(validator, network, heightInt, alerted, network.Rpcs[0], client)

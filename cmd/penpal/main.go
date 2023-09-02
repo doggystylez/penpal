@@ -43,10 +43,8 @@ func main() {
 	latestBlock := FetchLatestBlock(cfg.Network.Rpcs[0])
 
 	for _, validator := range cfg.Validators {
-
 		validatorConfig := createValidatorConfig(validator, cfg.Network, cfg.Notifiers, cfg.Health, latestBlock)
-
-		go scan.Monitor(validatorConfig)
+		go scan.Monitor(validatorConfig, latestBlock)
 	}
 
 	select {}
