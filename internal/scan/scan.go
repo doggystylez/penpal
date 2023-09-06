@@ -52,9 +52,56 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 	LatestBlockTime := latestBlock.Result.Block.Header.Time
 
 	heightInt, _ := strconv.Atoi(latestBlock.Result.Block.Header.Height)
-	alertChan <- backCheck(validator, network, heightInt, alerted, network.Rpcs[0], client)
+	alertChan <- backCheck(validator, network, heightInt, alerted, network.Rpcs[0], client, chainID, LatestBlockTime)
 }
 
-func backCheck(validator config.Validator, network config.Network, heightInt int, alerted *bool, s string, client *http.Client) {
-	panic("unimplemented")
+func backCheck(validator config.Validator, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time) alert.Alert {
+	var (
+		signed    int
+		rpcErrors int
+	)
+	for checkHeight := height - network.BackCheck + 1; checkHeight <= height; checkHeight++ {
+		block, err := rpc.GetBlockFromHeight(strconv.Itoa(checkHeight), url, client)
+		if err != nil || block.Error != nil {
+			rpcErrors++
+			network.BackCheck--
+			continue
+		}
+		if checkSig(validator.Address, block) {
+			signed++
+		}
+	}
+	if rpcErrors > network.BackCheck || network.BackCheck == 0 && network.RpcAlert {
+		if !*alerted {
+			*alerted = true
+			return alert.RpcDown(url)
+		} else {
+			return alert.Nil("repeat alert suppressed - RpcDown on " + network.ChainId)
+		}
+	} else if !network.Reverse {
+		if network.BackCheck-signed > network.AlertThreshold {
+			*alerted = true
+			return alert.Missed(validator.Name, (network.BackCheck - signed), network.BackCheck, validator.Name)
+		} else if *alerted {
+			*alerted = false
+			return alert.Cleared(signed, network.BackCheck, validator.Name)
+		} else {
+			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + validator.Name)
+		}
+	} else {
+		if signed > 1 {
+			return alert.Signed(signed, network.BackCheck, validator.Name)
+		} else {
+			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + validator.Name)
+		}
+	}
+}
+
+func checkSig(address string, block rpc.Block) bool {
+	for _, sig := range block.Result.Block.LastCommit.Signatures {
+		if sig.ValidatorAddress == address {
+			return true
+		}
+	}
+	return false
 }

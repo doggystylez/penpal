@@ -98,16 +98,16 @@ func Nil(message string) Alert {
 	return Alert{AlertType: None, Message: message}
 }
 
+func Missed(validatorMoniker string, missed int, check int, chain string) Alert {
+	return Alert{AlertType: Miss, Message: validatorMoniker + "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks on chain " + chain}
+}
+
 func Cleared(signed int, check int, chain, validatorMoniker string) Alert {
 	return Alert{AlertType: Clear, Message: "😌 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validatorMoniker + " on chain " + chain}
 }
 
 func Signed(signed int, check int, chain, validatorMoniker string) Alert {
 	return Alert{AlertType: Clear, Message: "😌 blocks! found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validatorMoniker + " on chain " + chain}
-}
-
-func Missed(validatorMoniker string, missed int, check int, chain, validator string) Alert {
-	return Alert{AlertType: Miss, Message: validatorMoniker + "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks on chain " + chain}
 }
 
 func NoRpc(ChainId string) Alert {
