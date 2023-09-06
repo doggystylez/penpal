@@ -55,11 +55,18 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 	alertChan <- backCheck(validator, network, heightInt, alerted, network.Rpcs[0], client, chainID, LatestBlockTime)
 }
 
-func backCheck(validator config.Validator, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time) alert.Alert {
+func backCheck(validator config.Validator, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, args ...interface{}) alert.Alert {
 	var (
 		signed    int
 		rpcErrors int
 	)
+
+	// Process the additional arguments based on the alert type
+	var clearedSignedArgs []interface{}
+	if len(args) >= 2 {
+		clearedSignedArgs = args[:2] // Extract the first two arguments
+	}
+
 	for checkHeight := height - network.BackCheck + 1; checkHeight <= height; checkHeight++ {
 		block, err := rpc.GetBlockFromHeight(strconv.Itoa(checkHeight), url, client)
 		if err != nil || block.Error != nil {
@@ -71,6 +78,7 @@ func backCheck(validator config.Validator, network config.Network, height int, a
 			signed++
 		}
 	}
+
 	if rpcErrors > network.BackCheck || network.BackCheck == 0 && network.RpcAlert {
 		if !*alerted {
 			*alerted = true
@@ -79,7 +87,7 @@ func backCheck(validator config.Validator, network config.Network, height int, a
 			return alert.Nil("repeat alert suppressed - RpcDown on " + network.ChainId)
 		}
 	} else if !network.Reverse {
-		if network.BackCheck-signed > network.AlertThreshold {
+		if len(clearedSignedArgs) >= 2 {
 			*alerted = true
 			return alert.Missed(validator.Name, (network.BackCheck - signed), network.BackCheck, validator.Name)
 		} else if *alerted {
@@ -89,7 +97,7 @@ func backCheck(validator config.Validator, network config.Network, height int, a
 			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + validator.Name)
 		}
 	} else {
-		if signed > 1 {
+		if len(clearedSignedArgs) >= 2 {
 			return alert.Signed(signed, network.BackCheck, validator.Name)
 		} else {
 			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + validator.Name)
