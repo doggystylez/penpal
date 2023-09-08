@@ -5,7 +5,7 @@ type (
 		Validators []Validators `json:"validators,omitempty"`
 		Notifiers  Notifiers    `json:"notifiers,omitempty"`
 		Health     Health       `json:"health,omitempty"`
-		Network    Network      `json:"network,omitempty"`
+		Network    []Network    `json:"network,omitempty"`
 	}
 
 	Validators struct {

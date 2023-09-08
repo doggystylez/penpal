@@ -18,7 +18,7 @@ func Monitor(cfg config.Config, latestBlock rpc.Block) {
 	}
 
 	for _, validator := range cfg.Validators {
-		go scanValidator(validator, cfg.Network, alertChan, client, latestBlock)
+		go scanValidator(validator, cfg.Network[0], alertChan, client, latestBlock)
 	}
 	if cfg.Health.Interval != 0 {
 		go healthServer(cfg.Health.Port)

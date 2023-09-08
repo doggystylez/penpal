@@ -39,49 +39,18 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	for _, network := range cfg.Network {
+	for _, network := cfg.Network {
 		if network.StallTime == 1 {
-			fmt.Println("warning! stall time for", network.Name, "is set to 1 minutes, this may cause more frequent false alerts")
+			fmt.Println("warning! stall time for", network.ChainId, "is set to 1 minutes, this may cause more frequent false alerts")
 		} else if network.StallTime == 0 {
-			fmt.Println("warning! stall check for", network.ChainI, "is disabled")
+			fmt.Println("warning! stall check for", network.ChainId, "is disabled")
 		}
 		if !network.RpcAlert {
-			fmt.Println("warning! rpc alerts for", network.Name, "are disabled")
+			fmt.Println("warning! rpc alerts for", network.ChainId, "are disabled")
 		}
 		if network.Reverse {
-			fmt.Println("warning!", network.Name, "running in reverse mode 🔄")
+			fmt.Println("warning!", network.ChainId, "running in reverse mode 🔄")
 		}
 	}
 	scan.Monitor(cfg)
-
-	latestBlock := FetchLatestBlock(cfg.Network.Rpcs[0])
-
-	for _, validator := range cfg.Validators {
-		validatorConfig := createValidatorConfig(validator, cfg.Network, cfg.Notifiers, cfg.Health, latestBlock)
-		go scan.Monitor(validatorConfig, latestBlock)
-	}
-
-	select {}
-
-}
-
-func FetchLatestBlock(url string) rpc.Block {
-	client := &http.Client{
-		Timeout: time.Second * 5,
-	}
-	block, err := rpc.GetLatestBlock(url, client)
-	if err != nil {
-		fmt.Println("Error fetching latest block:", err)
-		return rpc.Block{}
-	}
-	return block
-}
-
-func createValidatorConfig(validator config.Validators, network config.Network, notifiers config.Notifiers, health config.Health, latestBlock rpc.Block) config.Config {
-	return config.Config{
-		Validators: []config.Validators{validator},
-		Network:    network,
-		Notifiers:  notifiers,
-		Health:     health,
-	}
 }

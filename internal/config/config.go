@@ -29,41 +29,41 @@ func Load(file string) (config Config, err error) {
 
 func (c Config) validate() string {
 	if len(c.Validators) == 0 {
-		return "no validators configured"
+		return "no validators found - check config"
 	}
-	for _, validator := range c.Validators {
-		if validator.Moniker == "" {
-			return "moniker missing"
-		} else if validator.Address == "" {
-			return "address missing"
+
+	network := c.Network[0]
+
+	if network.ChainId == "" {
+		return "chain-id value invalid - check config"
+	}
+	if network.BackCheck <= 0 {
+		return "backcheck value invalid - check config"
+	}
+	if network.AlertThreshold <= 0 || network.AlertThreshold > network.BackCheck {
+		return "alert threshold value invalid - check config"
+	}
+	if network.Interval <= 0 {
+		return "check interval value invalid - check config"
+	}
+	if network.StallTime < 0 {
+		return "stall time value invalid - check config"
+	}
+
+	for _, rpcURL := range network.Rpcs {
+		parsedURL, err := url.Parse(rpcURL)
+		if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" || (parsedURL.Scheme != "https" && parsedURL.Scheme != "http") {
+			return "rpc \"" + rpcURL + "\" invalid for the network"
 		}
 	}
-	for _, network := range c.Network {
-		if c.Network.ChainId == "" {
-			return "chain-id missing for the network"
-		} else if c.Network.BackCheck <= 0 {
-			return "backcheck missing or invalid for the network"
-		} else if c.Network.AlertThreshold <= 0 || c.Network.AlertThreshold > c.Network.BackCheck {
-			return "alert threshold missing or invalid for the network"
-		} else if c.Network.Interval <= 0 {
-			return "check interval missing or invalid for the network"
-		} else if c.Network.StallTime < 0 {
-			return "stall time invalid for the network"
-		} else {
-			for _, rpcURL := range c.Network.Rpcs {
-				parsedURL, err := url.Parse(rpcURL)
-				if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" || (parsedURL.Scheme != "https" && parsedURL.Scheme != "http") {
-					return "rpc \"" + rpcURL + "\" invalid for the network"
-				}
-			}
-		}
-	}
+
 	if c.Notifiers.Telegram.Key != "" && c.Notifiers.Telegram.Chat == "" {
-		return "telegram chat id missing"
+		return "telegram chat id missing - check config"
 	}
 	if c.Notifiers.Telegram.Key == "" && c.Notifiers.Discord.Webhook == "" {
-		return "telegram or discord notifier must be configured"
+		return "telegram or discord notifier missing - check config"
 	}
+
 	return ""
 }
 
@@ -92,13 +92,15 @@ func New(file string) (err error) {
 				Address: "AAAABBBBCCCCDDDD2",
 			},
 		},
-		Network: Network{
-			ChainId:        "network-1",
-			Rpcs:           []string{"rpc1", "rpc2"},
-			BackCheck:      10,
-			AlertThreshold: 5,
-			Interval:       15,
-			StallTime:      30,
+		Network: []Network{
+			{
+				ChainId:        "network-1",
+				Rpcs:           []string{"rpc1", "rpc2"},
+				BackCheck:      10,
+				AlertThreshold: 5,
+				Interval:       15,
+				StallTime:      30,
+			},
 		},
 		Notifiers: Notifiers{
 			Telegram: struct {
