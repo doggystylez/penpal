@@ -89,7 +89,7 @@ func backCheck(validator config.Validator, network config.Network, height int, a
 	} else if !network.Reverse {
 		if len(clearedSignedArgs) >= 2 {
 			*alerted = true
-			return alert.Missed(validator.Moniker, (network.BackCheck - signed), network.BackCheck, validator.Moniker)
+			return alert.Missed((network.BackCheck - signed), network.BackCheck, validator.Moniker)
 		} else if *alerted {
 			*alerted = false
 			return alert.Cleared(signed, network.BackCheck, validator.Moniker)

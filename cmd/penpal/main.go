@@ -69,6 +69,5 @@ func createValidatorConfig(validator config.Validator, network config.Network, n
 		Network:    network,
 		Notifiers:  notifiers,
 		Health:     health,
-		Block:      config.Block{},
 	}
 }

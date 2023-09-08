@@ -98,7 +98,7 @@ func Nil(message string) Alert {
 	return Alert{AlertType: None, Message: message}
 }
 
-func Missed(validatorMoniker string, missed int, check int, validator string) Alert {
+func Missed(missed int, check int, validatorMoniker string) Alert {
 	return Alert{AlertType: Miss, Message: validatorMoniker + "❌ missed " + strconv.Itoa(missed) + " of last " + strconv.Itoa(check) + " blocks"}
 }
 

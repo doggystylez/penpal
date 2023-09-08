@@ -6,7 +6,6 @@ type (
 		Notifiers  Notifiers   `json:"notifiers,omitempty"`
 		Health     Health      `json:"health,omitempty"`
 		Network    Network     `json:"network,omitempty"`
-		Block      Block       `json:"latest_block,omitempty"`
 	}
 
 	Validator struct {
@@ -33,10 +32,6 @@ type (
 		Discord struct {
 			Webhook string `json:"webhook"`
 		} `json:"discord"`
-	}
-
-	Block struct {
-		LatestBlock int `json:"latest_block,omitempty"`
 	}
 
 	Health struct {
