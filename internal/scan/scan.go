@@ -28,7 +28,7 @@ func Monitor(cfg config.Config, latestBlock rpc.Block) {
 	<-exit
 }
 
-func scanValidator(validator config.Validator, network config.Network, alertChan chan<- alert.Alert, client *http.Client, latestBlock rpc.Block) {
+func scanValidator(validator config.Validators, network config.Network, alertChan chan<- alert.Alert, client *http.Client, latestBlock rpc.Block) {
 	var (
 		interval int
 		alerted  bool
@@ -47,7 +47,7 @@ func scanValidator(validator config.Validator, network config.Network, alertChan
 	}
 }
 
-func checkNetwork(validator config.Validator, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, latestBlock rpc.Block) {
+func checkNetwork(validator config.Validators, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, latestBlock rpc.Block) {
 	chainID := latestBlock.Result.Block.Header.ChainID
 	LatestBlockTime := latestBlock.Result.Block.Header.Time
 
@@ -55,7 +55,7 @@ func checkNetwork(validator config.Validator, network config.Network, client *ht
 	alertChan <- backCheck(validator, network, heightInt, alerted, network.Rpcs[0], client, chainID, LatestBlockTime)
 }
 
-func backCheck(validator config.Validator, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, args ...interface{}) alert.Alert {
+func backCheck(validator config.Validators, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, args ...interface{}) alert.Alert {
 	var (
 		signed    int
 		rpcErrors int

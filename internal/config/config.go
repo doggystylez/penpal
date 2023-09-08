@@ -80,7 +80,7 @@ func New(file string) (err error) {
 	encoder := json.NewEncoder(configFile)
 	encoder.SetIndent("", "  ")
 	err = encoder.Encode(Config{
-		Validators: []Validator{
+		Validators: []Validators{
 			{
 				Moniker: "Validator1",
 				Address: "AAAABBBBCCCCDDDD1",

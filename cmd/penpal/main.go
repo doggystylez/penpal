@@ -63,9 +63,9 @@ func FetchLatestBlock(url string) rpc.Block {
 	return block
 }
 
-func createValidatorConfig(validator config.Validator, network config.Network, notifiers config.Notifiers, health config.Health, latestBlock rpc.Block) config.Config {
+func createValidatorConfig(validator config.Validators, network config.Network, notifiers config.Notifiers, health config.Health, latestBlock rpc.Block) config.Config {
 	return config.Config{
-		Validators: []config.Validator{validator},
+		Validators: []config.Validators{validator},
 		Network:    network,
 		Notifiers:  notifiers,
 		Health:     health,

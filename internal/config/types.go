@@ -2,13 +2,13 @@ package config
 
 type (
 	Config struct {
-		Validators []Validator `json:"validators,omitempty"`
-		Notifiers  Notifiers   `json:"notifiers,omitempty"`
-		Health     Health      `json:"health,omitempty"`
-		Network    Network     `json:"network,omitempty"`
+		Validators []Validators `json:"validators,omitempty"`
+		Notifiers  Notifiers    `json:"notifiers,omitempty"`
+		Health     Health       `json:"health,omitempty"`
+		Network    Network      `json:"network,omitempty"`
 	}
 
-	Validator struct {
+	Validators struct {
 		Moniker string `json:"name,omitempty"`
 		Address string `json:"address,omitempty"`
 	}
