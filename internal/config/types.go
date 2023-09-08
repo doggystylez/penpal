@@ -9,7 +9,7 @@ type (
 	}
 
 	Validators struct {
-		Moniker string `json:"name,omitempty"`
+		Moniker string `json:"moniker,omitempty"`
 		Address string `json:"address,omitempty"`
 	}
 
