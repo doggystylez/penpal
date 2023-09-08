@@ -59,23 +59,19 @@ func checkNetwork(validator config.Validators, network config.Network, client *h
 	)
 	rpcs := network.Rpcs
 
-	// Check if there are any RPC servers available
 	if len(rpcs) == 0 && !*alerted && network.RpcAlert {
 		*alerted = true
 		alertChan <- alert.NoRpc(network.ChainId)
 		return
 	}
 
-	// Choose an RPC server randomly if there are multiple
 	if len(rpcs) > 0 {
 		i := rand.Intn(len(rpcs))
 		url = rpcs[i]
 	} else {
-		// If there's only one RPC server, use it
 		url = network.Rpcs[0]
 	}
 
-	// Fetch the latest chain ID and height from the selected RPC server
 	chainId, height, err = rpc.GetLatestHeight(url, client)
 
 	if err != nil && !*alerted && network.RpcAlert {
@@ -85,7 +81,6 @@ func checkNetwork(validator config.Validators, network config.Network, client *h
 		return
 	}
 
-	// Check if the fetched chain ID matches the expected chain ID
 	if chainId != network.ChainId && !*alerted && network.RpcAlert {
 		log.Println("err - chain id validation failed for rpc", url, "on", network.ChainId)
 		*alerted = true
@@ -93,7 +88,6 @@ func checkNetwork(validator config.Validators, network config.Network, client *h
 		return
 	}
 
-	// Fetch the latest block time from the selected RPC server
 	chainId, blocktime, err := rpc.GetLatestBlockTime(url, client)
 
 	if err != nil || chainId != network.ChainId {
