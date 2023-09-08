@@ -32,8 +32,8 @@ func (c Config) validate() string {
 		return "no validators configured"
 	}
 	for _, validator := range c.Validators {
-		if validator.Name == "" {
-			return "name missing"
+		if validator.Moniker == "" {
+			return "moniker missing"
 		} else if validator.Address == "" {
 			return "address missing"
 		}
@@ -50,7 +50,6 @@ func (c Config) validate() string {
 		return "stall time invalid for the network"
 	} else {
 		for _, rpcURL := range c.Network.Rpcs {
-			// Use the URL package to parse and validate the RPC URL
 			parsedURL, err := url.Parse(rpcURL)
 			if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" || (parsedURL.Scheme != "https" && parsedURL.Scheme != "http") {
 				return "rpc \"" + rpcURL + "\" invalid for the network"
@@ -83,11 +82,11 @@ func New(file string) (err error) {
 	err = encoder.Encode(Config{
 		Validators: []Validator{
 			{
-				Name:    "Validator1",
+				Moniker: "Validator1",
 				Address: "AAAABBBBCCCCDDDD1",
 			},
 			{
-				Name:    "Validator2",
+				Moniker: "Validator2",
 				Address: "AAAABBBBCCCCDDDD2",
 			},
 		},
