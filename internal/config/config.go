@@ -11,7 +11,7 @@ import (
 func Load(file string) (config Config, err error) {
 	configFile := filepath.Clean(file)
 	if _, err = os.Stat(configFile); os.IsNotExist(err) {
-		err = errors.New("config file does not exist. Use `-init` to generate a new one")
+		err = errors.New("no config found - run with `-c` `/path/to/config`, or `-init` to generate one")
 		return
 	}
 	data, err := os.ReadFile(configFile)
@@ -82,16 +82,6 @@ func New(file string) (err error) {
 	encoder := json.NewEncoder(configFile)
 	encoder.SetIndent("", "  ")
 	err = encoder.Encode(Config{
-		Validators: []Validators{
-			{
-				Moniker: "Validator1",
-				Address: "AAAABBBBCCCCDDDD1",
-			},
-			{
-				Moniker: "Validator2",
-				Address: "AAAABBBBCCCCDDDD2",
-			},
-		},
 		Network: []Network{
 			{
 				ChainId:        "network-1",
@@ -120,6 +110,16 @@ func New(file string) (err error) {
 			Interval: 1,
 			Port:     "8080",
 			Nodes:    []string{"http://192.168.1.1:8080"},
+		},
+		Validators: []Validators{
+			{
+				Moniker: "Validator1",
+				Address: "AAAABBBBCCCCDDDD1",
+			},
+			{
+				Moniker: "Validator2",
+				Address: "AAAABBBBCCCCDDDD2",
+			},
 		},
 	})
 	if err == nil {

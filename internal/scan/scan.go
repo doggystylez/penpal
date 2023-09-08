@@ -19,12 +19,9 @@ func Monitor(cfg config.Config) {
 		Timeout: time.Second * 5,
 	}
 
-	// Assuming there's only one network
 	network := cfg.Network[0]
-
-	for _, validator := range cfg.Validators {
-		go scanValidator(validator, network, alertChan, client)
-	}
+	go scanNetwork(cfg, network, alertChan, client)
+	go alert.Watch(alertChan, cfg.Notifiers, client)
 
 	if cfg.Health.Interval != 0 {
 		go healthServer(cfg.Health.Port)
@@ -32,17 +29,32 @@ func Monitor(cfg config.Config) {
 	}
 
 	<-exit
-	print("hello")
+	print("hello-scan-monitor")
+}
+func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
+	var (
+		interval int
+		alerted  bool
+	)
+	for {
+		checkNetwork(cfg, network, client, &alerted, alertChan)
+		if alerted && network.Interval > 2 {
+			interval = 2
+		} else {
+			interval = network.Interval
+		}
+		time.Sleep(time.Duration(interval) * time.Minute)
+	}
 }
 
-func scanValidator(validator config.Validators, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
+func scanValidator(cfg config.Config, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
 	var (
 		interval int
 		alerted  bool
 	)
 
 	for {
-		checkNetwork(validator, network, client, &alerted, alertChan)
+		checkNetwork(cfg, network, client, &alerted, alertChan)
 
 		if alerted && network.Interval > 2 {
 			interval = 2
@@ -54,7 +66,7 @@ func scanValidator(validator config.Validators, network config.Network, alertCha
 	}
 }
 
-func checkNetwork(validator config.Validators, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
+func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
 	var (
 		chainId string
 		height  string
@@ -105,13 +117,16 @@ func checkNetwork(validator config.Validators, network config.Network, client *h
 
 	heightInt, _ := strconv.Atoi(height)
 
-	alertChan <- backCheck(validator, network, heightInt, alerted, url, client, chainId, blocktime)
+	alertChan <- backCheck(cfg, network, heightInt, alerted, url, client, chainId, blocktime)
+
 }
 
-func backCheck(validator config.Validators, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time) alert.Alert {
+func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time) alert.Alert {
+
 	var (
 		signed    int
 		rpcErrors int
+		validator config.Validators
 	)
 
 	for checkHeight := height - network.BackCheck + 1; checkHeight <= height; checkHeight++ {

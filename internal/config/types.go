@@ -2,15 +2,10 @@ package config
 
 type (
 	Config struct {
-		Validators []Validators `json:"validators,omitempty"`
+		Network    []Network    `json:"network,omitempty"`
 		Notifiers  Notifiers    `json:"notifiers,omitempty"`
 		Health     Health       `json:"health,omitempty"`
-		Network    []Network    `json:"network,omitempty"`
-	}
-
-	Validators struct {
-		Moniker string `json:"moniker,omitempty"`
-		Address string `json:"address,omitempty"`
+		Validators []Validators `json:"validators,omitempty"`
 	}
 
 	Network struct {
@@ -38,5 +33,10 @@ type (
 		Interval int      `json:"interval,omitempty"`
 		Port     string   `json:"port,omitempty"`
 		Nodes    []string `json:"nodes,omitempty"`
+	}
+
+	Validators struct {
+		Moniker string `json:"moniker,omitempty"`
+		Address string `json:"address,omitempty"`
 	}
 )
