@@ -4,14 +4,12 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"sync" // Import the sync package
+	"sync"
 	"time"
 
 	"github.com/cordtus/penpal/internal/alert"
 	"github.com/cordtus/penpal/internal/config"
 )
-
-// Rest of your health.go code...
 
 func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, client *http.Client) {
 	for _, address := range cfg.Nodes {

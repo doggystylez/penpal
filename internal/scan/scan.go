@@ -10,11 +10,15 @@ import (
 	"github.com/cordtus/penpal/internal/rpc"
 )
 
-func Monitor(cfg config.Config, latestBlock rpc.Block) {
+func Monitor(cfg config.Config) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
 	client := &http.Client{
 		Timeout: time.Second * 5,
+	}
+	latestBlock, err := rpc.GetLatestBlock(cfg.Network[0].Rpcs[0], client)
+	if err != nil {
+		return
 	}
 
 	for _, validator := range cfg.Validators {
@@ -61,10 +65,9 @@ func backCheck(validator config.Validators, network config.Network, height int, 
 		rpcErrors int
 	)
 
-	// Process the additional arguments based on the alert type
 	var clearedSignedArgs []interface{}
 	if len(args) >= 2 {
-		clearedSignedArgs = args[:2] // Extract the first two arguments
+		clearedSignedArgs = args[:2]
 	}
 
 	for checkHeight := height - network.BackCheck + 1; checkHeight <= height; checkHeight++ {

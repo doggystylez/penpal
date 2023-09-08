@@ -3,13 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/cordtus/penpal/internal/config"
-	"github.com/cordtus/penpal/internal/rpc"
 	"github.com/cordtus/penpal/internal/scan"
 )
 
@@ -39,18 +36,6 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	for _, network := cfg.Network {
-		if network.StallTime == 1 {
-			fmt.Println("warning! stall time for", network.ChainId, "is set to 1 minutes, this may cause more frequent false alerts")
-		} else if network.StallTime == 0 {
-			fmt.Println("warning! stall check for", network.ChainId, "is disabled")
-		}
-		if !network.RpcAlert {
-			fmt.Println("warning! rpc alerts for", network.ChainId, "are disabled")
-		}
-		if network.Reverse {
-			fmt.Println("warning!", network.ChainId, "running in reverse mode 🔄")
-		}
-	}
+
 	scan.Monitor(cfg)
 }
