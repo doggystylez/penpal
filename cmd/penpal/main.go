@@ -48,6 +48,7 @@ func main() {
 	if network.Reverse {
 		fmt.Println("warning!", network.ChainId, "running in reverse mode 🔄")
 	}
-
+	print("hello-main")
 	scan.Monitor(cfg)
+	print("hello-main-2")
 }
