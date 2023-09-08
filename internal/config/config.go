@@ -38,21 +38,23 @@ func (c Config) validate() string {
 			return "address missing"
 		}
 	}
-	if c.Network.ChainId == "" {
-		return "chain-id missing for the network"
-	} else if c.Network.BackCheck <= 0 {
-		return "backcheck missing or invalid for the network"
-	} else if c.Network.AlertThreshold <= 0 || c.Network.AlertThreshold > c.Network.BackCheck {
-		return "alert threshold missing or invalid for the network"
-	} else if c.Network.Interval <= 0 {
-		return "check interval missing or invalid for the network"
-	} else if c.Network.StallTime < 0 {
-		return "stall time invalid for the network"
-	} else {
-		for _, rpcURL := range c.Network.Rpcs {
-			parsedURL, err := url.Parse(rpcURL)
-			if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" || (parsedURL.Scheme != "https" && parsedURL.Scheme != "http") {
-				return "rpc \"" + rpcURL + "\" invalid for the network"
+	for _, network := range c.Network {
+		if c.Network.ChainId == "" {
+			return "chain-id missing for the network"
+		} else if c.Network.BackCheck <= 0 {
+			return "backcheck missing or invalid for the network"
+		} else if c.Network.AlertThreshold <= 0 || c.Network.AlertThreshold > c.Network.BackCheck {
+			return "alert threshold missing or invalid for the network"
+		} else if c.Network.Interval <= 0 {
+			return "check interval missing or invalid for the network"
+		} else if c.Network.StallTime < 0 {
+			return "stall time invalid for the network"
+		} else {
+			for _, rpcURL := range c.Network.Rpcs {
+				parsedURL, err := url.Parse(rpcURL)
+				if err != nil || parsedURL.Scheme == "" || parsedURL.Host == "" || (parsedURL.Scheme != "https" && parsedURL.Scheme != "http") {
+					return "rpc \"" + rpcURL + "\" invalid for the network"
+				}
 			}
 		}
 	}
