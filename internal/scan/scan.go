@@ -19,9 +19,13 @@ func Monitor(cfg config.Config) {
 		Timeout: time.Second * 5,
 	}
 
+	// Assuming there's only one network
+	network := cfg.Network[0]
+
 	for _, validator := range cfg.Validators {
-		go scanValidator(validator, cfg.Network[0], alertChan, client)
+		go scanValidator(validator, network, alertChan, client)
 	}
+
 	if cfg.Health.Interval != 0 {
 		go healthServer(cfg.Health.Port)
 		go healthCheck(cfg.Health, alertChan, client)
