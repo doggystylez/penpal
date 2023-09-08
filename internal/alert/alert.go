@@ -20,7 +20,7 @@ const (
 )
 
 func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Client) {
-	backoffAttempts := make(map[string]int) // Track backoff attempts for each alert
+	backoffAttempts := make(map[string]int)
 	for {
 		a := <-alertChan
 		if a.AlertType == None {
@@ -28,7 +28,6 @@ func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Clie
 			continue
 		}
 
-		// Check if we've reached the maximum repeat for this alert
 		if backoffAttempts[a.Message] >= maxRepeatAlerts {
 			log.Printf("Maximum repeat attempts reached for alert: %s. Skipping further notifications.", a.Message)
 			continue
@@ -49,14 +48,14 @@ func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Clie
 					err := b.send(client)
 					if err == nil {
 						log.Println("Sent alert to", b.Type, alertMsg)
-						delete(backoffAttempts, alertMsg) // Reset backoff attempts on success
+						delete(backoffAttempts, alertMsg)
 						return
 					}
 					time.Sleep(backoffDuration)
-					backoffDuration *= 2 // Exponential backoff
+					backoffDuration *= 2
 					log.Printf("Error sending message %s to %s. Retrying in %v", alertMsg, b.Type, backoffDuration)
 				}
-				// Mark that we've attempted the alert
+
 				backoffAttempts[alertMsg]++
 				log.Printf("Error sending message %s to %s after maximum retries", alertMsg, b.Type)
 			}(n, a.Message)
