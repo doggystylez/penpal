@@ -47,25 +47,6 @@ func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- ale
 	}
 }
 
-func scanValidator(cfg config.Config, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
-	var (
-		interval int
-		alerted  bool
-	)
-
-	for {
-		checkNetwork(cfg, network, client, &alerted, alertChan)
-
-		if alerted && network.Interval > 2 {
-			interval = 2
-		} else {
-			interval = network.Interval
-		}
-
-		time.Sleep(time.Duration(interval) * time.Minute)
-	}
-}
-
 func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
 	var (
 		chainId string
