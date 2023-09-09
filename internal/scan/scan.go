@@ -104,19 +104,25 @@ func checkNetwork(cfg config.Config, network config.Network, client *http.Client
 }
 
 func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, moniker string, address string) alert.Alert {
+
 	var (
 		signed    int
 		rpcErrors int
 	)
 
-	block, err := rpc.GetBlockFromHeight(strconv.Itoa(height), url, client)
-	if err != nil || block.Error != nil {
-		rpcErrors++
+	startHeight := height - network.BackCheck + 1
+	if startHeight < 1 {
+		startHeight = 1
 	}
 
-	for _, validator := range cfg.Validators {
-		if checkSig(validator.Address, block) {
-			signed++
+	for checkHeight := startHeight; checkHeight <= height; checkHeight++ {
+		block, err := rpc.GetBlockFromHeight(strconv.Itoa(checkHeight), url, client)
+		if err != nil || block.Error != nil {
+			rpcErrors++
+		} else {
+			if checkSig(address, block) {
+				signed++
+			}
 		}
 	}
 

@@ -45,9 +45,6 @@ func main() {
 	if !network.RpcAlert {
 		fmt.Println("warning! rpc alerts for", network.ChainId, "are disabled")
 	}
-	if network.Reverse {
-		fmt.Println("warning!", network.ChainId, "running in reverse mode 🔄")
-	}
 
 	scan.Monitor(cfg)
 }
