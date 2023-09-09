@@ -36,20 +36,22 @@ func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- ale
 		interval int
 		alerted  bool
 	)
-
-	height, err := rpc.GetLatestHeight(network.Rpcs[0], client)
+	url := network.Rpcs[0]
+	heightStr, err := rpc.GetLatestHeight(url, client)
 	if err != nil {
 		log.Println("Error getting latest height:", err)
 		return
 	}
-	// Removed unused variable heightInt
+	height, err := strconv.Atoi(heightStr)
+	if err != nil {
+		log.Println("Error converting height to int:", err)
+		return
+	}
 	startHeight := height - network.BackCheck + 1
 
-	// Updated to store the result of backCheck in a variable
 	signedBlocks := backCheck(cfg, network, startHeight, client)
 
 	for _, validator := range cfg.Validators {
-		// Updated to use the signedBlocks variable
 		alertChan <- alert.Signed(signedBlocks, network.BackCheck, validator.Moniker)
 	}
 
@@ -64,9 +66,9 @@ func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- ale
 func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, moniker string, address string) {
 	var (
 		chainId string
-		// Removed unused variable height
-		url string
-		err error
+		height  int
+		url     string
+		err     error
 	)
 	rpcs := network.Rpcs
 
@@ -83,7 +85,7 @@ func checkNetwork(cfg config.Config, network config.Network, client *http.Client
 		url = network.Rpcs[0]
 	}
 
-	chainId, _, err = rpc.GetLatestHeight(url, client)
+	_, err = rpc.GetLatestHeight(url, client)
 
 	if err != nil && !*alerted && network.RpcAlert {
 		log.Println("err - failed to check latest height for", network.ChainId, "err - ", err)
@@ -110,15 +112,14 @@ func checkNetwork(cfg config.Config, network config.Network, client *http.Client
 		alertChan <- alert.Stalled(blocktime, network.ChainId)
 	}
 
-	// Removed the use of the signedBlocks variable here
-	alert := alert.Signed(backCheck(cfg, network, startHeight, client), network.BackCheck, moniker)
+	alert := alert.Signed(backCheck(cfg, network, height, client), network.BackCheck, moniker)
 	alertChan <- alert
 }
 
-func backCheck(cfg config.Config, network config.Network, startHeight int, client *http.Client) int {
+func backCheck(cfg config.Config, network config.Network, height int, client *http.Client) int {
 	signedBlocks := 0
 
-	for checkHeight := startHeight; checkHeight <= startHeight+network.BackCheck-1; checkHeight++ {
+	for checkHeight := height; checkHeight <= height+network.BackCheck-1; checkHeight++ {
 		block, err := rpc.GetBlockFromHeight(strconv.Itoa(checkHeight), network.Rpcs[0], client)
 		if err != nil || block.Error != nil {
 			log.Println("Error fetching block at height", checkHeight, ":", err)
