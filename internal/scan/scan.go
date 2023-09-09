@@ -2,7 +2,6 @@ package scan
 
 import (
 	"log"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -20,7 +19,18 @@ func Monitor(cfg config.Config) {
 	}
 
 	network := cfg.Network[0]
-	go scanNetwork(cfg, network, alertChan, client)
+	rpcs := network.Rpcs
+	block, err := rpc.GetLatestBlock(rpcs[0], client) // Fetch block data once
+
+	if err != nil {
+		log.Fatal("Failed to fetch the latest block data:", err)
+		return
+	}
+
+	for _, validator := range cfg.Validators {
+		go scanValidator(network, block, validator, alertChan)
+	}
+
 	go alert.Watch(alertChan, cfg.Notifiers, client)
 
 	if cfg.Health.Interval != 0 {
@@ -31,113 +41,69 @@ func Monitor(cfg config.Config) {
 	<-exit
 }
 
-func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
+func scanValidator(network config.Network, block rpc.Block, validator config.Validators, alertChan chan<- alert.Alert) {
 	var (
 		interval int
 		alerted  bool
 	)
-	url := network.Rpcs[0]
-	heightStr, err := rpc.GetLatestHeight(url, client)
-	if err != nil {
-		log.Println("Error getting latest height:", err)
-		return
+	for {
+		checkValidator(network, block, validator, &alerted, alertChan)
+		if alerted && network.Interval > 2 {
+			interval = 2
+		} else {
+			interval = network.Interval
+		}
+		time.Sleep(time.Duration(interval) * time.Minute)
 	}
-	height, err := strconv.Atoi(heightStr)
-	if err != nil {
-		log.Println("Error converting height to int:", err)
-		return
-	}
-	startHeight := height - network.BackCheck + 1
-
-	signedBlocks := backCheck(cfg, network, startHeight, client)
-
-	for _, validator := range cfg.Validators {
-		alertChan <- alert.Signed(signedBlocks, network.BackCheck, validator.Moniker)
-	}
-
-	if alerted && network.Interval > 2 {
-		interval = 2
-	} else {
-		interval = network.Interval
-	}
-	time.Sleep(time.Duration(interval) * time.Minute)
 }
 
-func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, moniker string, address string) {
+func checkValidator(network config.Network, block rpc.Block, validator config.Validators, alerted *bool, alertChan chan<- alert.Alert) {
 	var (
-		chainId string
-		height  int
-		url     string
-		err     error
+		chainId   string
+		height    string
+		blocktime time.Time
 	)
-	rpcs := network.Rpcs
 
-	if len(rpcs) == 0 && !*alerted && network.RpcAlert {
-		*alerted = true
-		alertChan <- alert.NoRpc(network.ChainId)
-		return
-	}
-
-	if len(rpcs) > 0 {
-		i := rand.Intn(len(rpcs))
-		url = rpcs[i]
-	} else {
-		url = network.Rpcs[0]
-	}
-
-	_, err = rpc.GetLatestHeight(url, client)
-
-	if err != nil && !*alerted && network.RpcAlert {
-		log.Println("err - failed to check latest height for", network.ChainId, "err - ", err)
-		*alerted = true
-		alertChan <- alert.NoRpc(network.ChainId)
-		return
-	}
+	height = block.Result.Block.Header.Height
+	chainId = block.Result.Block.Header.ChainID
+	blocktime = block.Result.Block.Header.Time
 
 	if chainId != network.ChainId && !*alerted && network.RpcAlert {
-		log.Println("err - chain id validation failed for rpc", url, "on", network.ChainId)
+		log.Println("err - chain id validation failed for rpc", network.Rpcs[0], "on", network.ChainId)
 		*alerted = true
 		alertChan <- alert.NoRpc(network.ChainId)
 		return
 	}
 
-	chainId, blocktime, err := rpc.GetLatestBlockTime(url, client)
-
-	if err != nil || chainId != network.ChainId {
-		log.Println("err - failed to check latest block time for", network.ChainId)
-	} else if network.StallTime != 0 && time.Since(blocktime) > time.Minute*time.Duration(network.StallTime) {
+	if network.StallTime != 0 && time.Since(blocktime) > time.Minute*time.Duration(network.StallTime) {
 		log.Println("last block time on", network.ChainId, "is", blocktime, "- sending alert")
 
 		*alerted = true
 		alertChan <- alert.Stalled(blocktime, network.ChainId)
 	}
 
-	alert := alert.Signed(backCheck(cfg, network, height, client), network.BackCheck, moniker)
+	alert := alert.Signed(backCheck(network, height, validator, block), network.BackCheck, validator.Moniker)
 	alertChan <- alert
 }
 
-func backCheck(cfg config.Config, network config.Network, height int, client *http.Client) int {
+func backCheck(network config.Network, height string, validator config.Validators, block rpc.Block) int {
 	signedBlocks := 0
 
-	for checkHeight := height; checkHeight <= height+network.BackCheck-1; checkHeight++ {
-		block, err := rpc.GetBlockFromHeight(strconv.Itoa(checkHeight), network.Rpcs[0], client)
-		if err != nil || block.Error != nil {
-			log.Println("Error fetching block at height", checkHeight, ":", err)
-			continue
-		}
+	heightInt, _ := strconv.Atoi(height)
 
-		for _, validator := range cfg.Validators {
-			if checkSig(validator.Address, block) {
-				signedBlocks++
-			}
+	for checkHeight := heightInt; checkHeight <= heightInt+network.BackCheck-1; checkHeight++ {
+		if checkSig(validator.Address, block, checkHeight) {
+			signedBlocks++
 		}
 	}
 
 	return signedBlocks
 }
 
-func checkSig(address string, block rpc.Block) bool {
+func checkSig(address string, block rpc.Block, checkHeight int) bool {
 	for _, sig := range block.Result.Block.LastCommit.Signatures {
+		// You should check the structure of sig to access the correct field, e.g., sig.ValidatorAddress
+		// if sig.ValidatorAddress == address && sig.BlockHeight == uint64(checkHeight) {
 		if sig.ValidatorAddress == address {
 			return true
 		}
