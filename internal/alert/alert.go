@@ -24,7 +24,6 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 
 	var lastAlertTime = time.Now().Add(-time.Hour)
 
-	// Add a time duration for the delay between alerts
 	alertDelay := 250 * time.Millisecond
 
 	for {
