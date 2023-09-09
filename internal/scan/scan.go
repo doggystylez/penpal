@@ -31,7 +31,6 @@ func Monitor(cfg config.Config) {
 	}
 
 	go func() {
-
 		for {
 			time.Sleep(time.Second * 10)
 			printStackTraces()
@@ -117,7 +116,6 @@ func checkNetwork(cfg config.Config, network config.Network, client *http.Client
 	heightInt, _ := strconv.Atoi(height)
 
 	alertChan <- backCheck(cfg, network, heightInt, alerted, url, client, chainId, blocktime, moniker, address)
-
 }
 
 func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, moniker string, address string) alert.Alert {
