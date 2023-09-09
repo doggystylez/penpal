@@ -82,22 +82,40 @@ func checkValidator(network config.Network, block rpc.Block, validator config.Va
 		alertChan <- alert.Stalled(blocktime, network.ChainId)
 	}
 
-	alert := alert.Signed(backCheck(network, height, validator, block), network.BackCheck, validator.Moniker)
+	alert := backCheck(network, height, validator, block, alerted) // Pass the alerted parameter here
 	alertChan <- alert
 }
 
-func backCheck(network config.Network, height string, validator config.Validators, block rpc.Block) int {
+func backCheck(network config.Network, height string, validator config.Validators, block rpc.Block, alerted *bool) alert.Alert {
 	signedBlocks := 0
-
+	missedBlocks := 0
 	heightInt, _ := strconv.Atoi(height)
 
 	for checkHeight := heightInt - network.BackCheck + 1; checkHeight <= heightInt; checkHeight++ {
 		if checkSig(validator.Address, block, checkHeight) {
 			signedBlocks++
+		} else {
+			missedBlocks++
 		}
 	}
 
-	return signedBlocks
+	if missedBlocks > network.AlertThreshold {
+		if !*alerted {
+			*alerted = true
+			return alert.Missed(missedBlocks, network.BackCheck, validator.Moniker)
+		} else {
+			return alert.Nil("repeat alert suppressed - Missed blocks on " + validator.Moniker)
+		}
+	} else if signedBlocks == network.BackCheck {
+		if *alerted {
+			*alerted = false
+			return alert.Cleared(signedBlocks, network.BackCheck, validator.Moniker)
+		} else {
+			return alert.Signed(signedBlocks, network.BackCheck, validator.Moniker)
+		}
+	} else {
+		return alert.Nil("found " + strconv.Itoa(signedBlocks) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + validator.Moniker)
+	}
 }
 
 func checkSig(address string, block rpc.Block, checkHeight int) bool {
