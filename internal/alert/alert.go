@@ -20,12 +20,29 @@ const (
 
 func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 	backoffAttempts := make(map[string]int)
+	lastSignedTime := make(map[string]time.Time) // Track the last time a 'Signed' alert was sent for each message.
 
 	for {
 		a := <-alertChan
 		if a.AlertType == None {
 			log.Println(a.Message)
 			continue
+		}
+
+		// Check if the alert type is 'Signed'
+		if a.AlertType == Signed {
+			// Get the last time a 'Signed' alert was sent for this message.
+			lastTime, exists := lastSignedTime[a.Message]
+			if exists {
+				// Check if it's been less than 15 minutes since the last 'Signed' alert.
+				if time.Since(lastTime) < 15*time.Minute {
+					log.Printf("Skipping 'Signed' alert for message '%s' as it was sent within the last 15 minutes.", a.Message)
+					continue
+				}
+			}
+
+			// Update the last sent time for this message.
+			lastSignedTime[a.Message] = time.Now()
 		}
 
 		var notifications []notification
