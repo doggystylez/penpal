@@ -19,7 +19,6 @@ func Monitor(cfg config.Config) {
 	}
 
 	network := cfg.Network[0]
-	rpcs := network.Rpcs[0]
 	for _, validator := range cfg.Validators {
 		go scanValidator(network, client, validator, alertChan)
 	}
@@ -64,17 +63,18 @@ func checkValidator(network config.Network, block rpc.Block, validator config.Va
 	chainId = block.Result.Block.Header.ChainID
 	blocktime = block.Result.Block.Header.Time
 
-	if chainId != network.ChainId && alerted && network.RpcAlert {
+	if chainId != network.ChainId && *alerted {
 		log.Println("err - chain id validation failed for rpc", network.Rpcs[0], "on", network.ChainId)
-		alerted = true
+		alerted = new(bool)
+		*alerted = true
 		alertChan <- alert.NoRpc(network.ChainId)
 		return
 	}
 
 	if network.StallTime != 0 && time.Since(blocktime) > time.Minute*time.Duration(network.StallTime) {
 		log.Println("last block time on", network.ChainId, "is", blocktime, "- sending alert")
-
-		alerted = true
+		alerted = new(bool)
+		*alerted = true
 		alertChan <- alert.Stalled(blocktime, network.ChainId)
 	}
 
