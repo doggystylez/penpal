@@ -31,13 +31,15 @@ func Monitor(cfg config.Config) {
 	<-exit
 	print("hello-scan-monitor")
 }
+
 func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
 	var (
-		interval int
-		alerted  bool
+		interval  int
+		alerted   bool
+		validator config.Validators
 	)
 	for {
-		checkNetwork(cfg, network, client, &alerted, alertChan)
+		checkNetwork(cfg, network, client, &alerted, alertChan, validator.Moniker) // Pass the validator's moniker
 		if alerted && network.Interval > 2 {
 			interval = 2
 		} else {
@@ -47,7 +49,7 @@ func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- ale
 	}
 }
 
-func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert) {
+func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, moniker string) { // Receive the validator's moniker
 	var (
 		chainId string
 		height  string
@@ -98,11 +100,11 @@ func checkNetwork(cfg config.Config, network config.Network, client *http.Client
 
 	heightInt, _ := strconv.Atoi(height)
 
-	alertChan <- backCheck(cfg, network, heightInt, alerted, url, client, chainId, blocktime)
+	alertChan <- backCheck(cfg, network, heightInt, alerted, url, client, chainId, blocktime, moniker) // Pass the validator's moniker
 
 }
 
-func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time) alert.Alert {
+func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, moniker string) alert.Alert { // Receive the validator's moniker
 
 	var (
 		signed    int
