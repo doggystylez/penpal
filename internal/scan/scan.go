@@ -104,8 +104,7 @@ func checkNetwork(cfg config.Config, network config.Network, client *http.Client
 
 }
 
-func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, moniker string) alert.Alert { // Receive the validator's moniker
-
+func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, moniker string) alert.Alert {
 	var (
 		signed    int
 		rpcErrors int
@@ -131,15 +130,8 @@ func backCheck(cfg config.Config, network config.Network, height int, alerted *b
 		} else {
 			return alert.Nil("repeat alert suppressed - RpcDown on " + network.ChainId)
 		}
-	} else if !network.Reverse {
-		if *alerted {
-			*alerted = false
-			return alert.Cleared(signed, network.BackCheck, validator.Moniker)
-		} else {
-			return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + validator.Moniker)
-		}
 	} else {
-		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + validator.Moniker)
+		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + moniker)
 	}
 }
 
