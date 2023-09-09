@@ -19,16 +19,9 @@ func Monitor(cfg config.Config) {
 	}
 
 	network := cfg.Network[0]
-	rpcs := network.Rpcs
-	block, err := rpc.GetLatestBlock(rpcs[0], client) // Fetch block data once
-
-	if err != nil {
-		log.Fatal("Failed to fetch the latest block data:", err)
-		return
-	}
-
+	rpcs := network.Rpcs[0]
 	for _, validator := range cfg.Validators {
-		go scanValidator(network, block, validator, alertChan)
+		go scanValidator(network, client, validator, alertChan)
 	}
 
 	alert.Watch(alertChan, cfg, client)
@@ -41,19 +34,22 @@ func Monitor(cfg config.Config) {
 	<-exit
 }
 
-func scanValidator(network config.Network, block rpc.Block, validator config.Validators, alertChan chan<- alert.Alert) {
-	var (
-		interval int
-		alerted  bool
-	)
+func scanValidator(network config.Network, client *http.Client, validator config.Validators, alertChan chan<- alert.Alert) {
+	var alerted bool
 	for {
+		block, err := rpc.GetLatestBlock(network.Rpcs[0], client)
+
+		if err != nil {
+			log.Fatal("Failed to fetch the latest block data:", err)
+			return
+		}
+
 		checkValidator(network, block, validator, &alerted, alertChan)
 		if alerted && network.Interval > 2 {
-			interval = 2
+			time.Sleep(time.Minute * 2)
 		} else {
-			interval = network.Interval
+			time.Sleep(time.Minute * time.Duration(network.Interval))
 		}
-		time.Sleep(time.Duration(interval) * time.Minute)
 	}
 }
 
@@ -68,9 +64,9 @@ func checkValidator(network config.Network, block rpc.Block, validator config.Va
 	chainId = block.Result.Block.Header.ChainID
 	blocktime = block.Result.Block.Header.Time
 
-	if chainId != network.ChainId && !*alerted && network.RpcAlert {
+	if chainId != network.ChainId && alerted && network.RpcAlert {
 		log.Println("err - chain id validation failed for rpc", network.Rpcs[0], "on", network.ChainId)
-		*alerted = true
+		alerted = true
 		alertChan <- alert.NoRpc(network.ChainId)
 		return
 	}
@@ -78,7 +74,7 @@ func checkValidator(network config.Network, block rpc.Block, validator config.Va
 	if network.StallTime != 0 && time.Since(blocktime) > time.Minute*time.Duration(network.StallTime) {
 		log.Println("last block time on", network.ChainId, "is", blocktime, "- sending alert")
 
-		*alerted = true
+		alerted = true
 		alertChan <- alert.Stalled(blocktime, network.ChainId)
 	}
 
