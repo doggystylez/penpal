@@ -34,17 +34,17 @@ func Monitor(cfg config.Config) {
 }
 
 func scanValidator(network config.Network, client *http.Client, validator config.Validators, alertChan chan<- alert.Alert) {
-	var alerted bool
+	alerted := new(bool) // Initialize the alerted variable
 	for {
 		block, err := rpc.GetLatestBlock(network.Rpcs[0], client)
 
 		if err != nil {
-			log.Fatal("Failed to fetch the latest block data:", err)
-			return
+			log.Println("Failed to fetch the latest block data:", err)
+			// Continue the loop without returning to keep retrying.
 		}
 
-		checkValidator(network, block, validator, &alerted, alertChan)
-		if alerted && network.Interval > 2 {
+		checkValidator(network, block, validator, alertChan, alerted) // Pass the alerted variable
+		if network.Interval > 2 {
 			time.Sleep(time.Minute * 2)
 		} else {
 			time.Sleep(time.Minute * time.Duration(network.Interval))
@@ -52,7 +52,7 @@ func scanValidator(network config.Network, client *http.Client, validator config
 	}
 }
 
-func checkValidator(network config.Network, block rpc.Block, validator config.Validators, alerted *bool, alertChan chan<- alert.Alert) {
+func checkValidator(network config.Network, block rpc.Block, validator config.Validators, alertChan chan<- alert.Alert, alerted *bool) {
 	var (
 		chainId   string
 		height    string

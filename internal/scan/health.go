@@ -22,30 +22,31 @@ func healthCheck(cfg config.Health, alertChan chan<- alert.Alert, client *http.C
 				request, err := http.NewRequestWithContext(context.Background(), "GET", a+"/health", nil)
 				if err != nil {
 					log.Println("health check failed:", err)
-					panic(err)
 				}
 				request.Header.Set("agent", "penpal")
 				resp, err := client.Do(request)
 				if err != nil {
-					alerted = true
-					log.Println("health check for", a, "failed:", err, "next check in two minutes")
+					if !alerted {
+						log.Println("health check for", a, "failed:", err)
+						alerted = true
+						alertChan <- alert.Unhealthy(2*time.Minute, a)
+					}
 				} else {
 					if resp.StatusCode != http.StatusOK {
-						alerted = true
-						log.Println("health check for", a, "failed: status code", resp.StatusCode, "next check in two minutes")
+						if !alerted {
+							log.Println("health check for", a, "failed: status code", resp.StatusCode)
+							alerted = true
+							alertChan <- alert.Unhealthy(2*time.Minute, a)
+						}
 					} else {
-						log.Println("health check for", a, "succeeded. next check at", time.Now().UTC().Add(interval).Format(time.RFC3339))
-						interval = time.Duration(cfg.Interval) * time.Hour
 						if alerted {
+							log.Println("health check for", a, "succeeded.")
 							alerted = false
+							interval = time.Duration(cfg.Interval) * time.Hour
 							alertChan <- alert.Healthy(interval, a)
 						}
 					}
 					_ = resp.Body.Close()
-				}
-				if alerted {
-					interval = 2 * time.Minute
-					alertChan <- alert.Unhealthy(interval, a)
 				}
 				time.Sleep(interval)
 			}
