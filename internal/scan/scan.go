@@ -91,7 +91,7 @@ func backCheck(network config.Network, height string, validator config.Validator
 
 	heightInt, _ := strconv.Atoi(height)
 
-	for checkHeight := heightInt; checkHeight <= heightInt+network.BackCheck-1; checkHeight++ {
+	for checkHeight := heightInt - network.BackCheck + 1; checkHeight <= heightInt; checkHeight++ {
 		if checkSig(validator.Address, block, checkHeight) {
 			signedBlocks++
 		}
@@ -102,8 +102,6 @@ func backCheck(network config.Network, height string, validator config.Validator
 
 func checkSig(address string, block rpc.Block, checkHeight int) bool {
 	for _, sig := range block.Result.Block.LastCommit.Signatures {
-		// You should check the structure of sig to access the correct field, e.g., sig.ValidatorAddress
-		// if sig.ValidatorAddress == address && sig.BlockHeight == uint64(checkHeight) {
 		if sig.ValidatorAddress == address {
 			return true
 		}
