@@ -23,7 +23,7 @@ func Monitor(cfg config.Config) {
 		go scanValidator(network, client, validator, alertChan)
 	}
 
-	alert.Watch(alertChan, cfg, client)
+	alert.Watch(alertChan, cfg.Notifiers, client)
 
 	if cfg.Health.Interval != 0 {
 		go healthServer(cfg.Health.Port)
