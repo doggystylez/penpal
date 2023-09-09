@@ -32,7 +32,7 @@ func main() {
 		}
 		return
 	}
-	cfg, err := config.Load("path/to/config.json")
+	cfg, err := config.Load(file)
 	if err != nil {
 		log.Fatal("Failed to load configuration:", err)
 	}
