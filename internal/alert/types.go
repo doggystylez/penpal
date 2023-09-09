@@ -7,7 +7,6 @@ const (
 	Miss
 	Jail
 	Stall
-	Health
 	Unknown
 )
 

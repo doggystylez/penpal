@@ -1,4 +1,4 @@
-package config
+package settings
 
 import (
 	"encoding/json"
@@ -45,11 +45,6 @@ func New(file string) (err error) {
 			}{
 				Webhook: "webhook_url",
 			},
-		},
-		Health: Health{
-			Interval: 1,
-			Port:     "8080",
-			Nodes:    []string{"http://192.168.1.1:8080"},
 		},
 		Validators: []Validators{
 			{

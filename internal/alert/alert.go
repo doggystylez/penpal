@@ -10,15 +10,13 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cordtus/penpal/settings"
+	"github.com/cordtus/penpal/internal/settings"
 )
 
 const (
 	maxRepeatAlerts = 5
 	maxRetries      = 5
 )
-
-const retries = 3
 
 func Watch(alertChan <-chan Alert, cfg settings.Config, client *http.Client) {
 	backoffAttempts := make(map[string]int)
@@ -32,7 +30,7 @@ func Watch(alertChan <-chan Alert, cfg settings.Config, client *http.Client) {
 		}
 
 		// Check if the alert type is 'Signed'
-		if a.AlertType == alert.Signed {
+		if a.AlertType == Clear {
 			// Get the last time a 'Signed' alert was sent for this message.
 			lastTime, exists := lastSignedTime[a.Message]
 			if exists {
@@ -136,16 +134,4 @@ func RpcDown(url string) Alert {
 
 func Stalled(blocktime time.Time, ChainId string) Alert {
 	return Alert{AlertType: Stall, Message: "⏰ warning - last block found for " + ChainId + " was " + blocktime.Format(time.RFC1123)}
-}
-
-func Healthy(interval time.Duration, address string) Alert {
-	return Alert{AlertType: Health, Message: "🤝 penpal at " + address + " healthy. next check at " + timeInterval(interval)}
-}
-
-func Unhealthy(interval time.Duration, address string) Alert {
-	return Alert{AlertType: Health, Message: "🤢 penpal at " + address + " unhealthy. next check at " + timeInterval(interval)}
-}
-
-func timeInterval(d time.Duration) string {
-	return time.Now().UTC().Add(d).Format(time.RFC3339)
 }

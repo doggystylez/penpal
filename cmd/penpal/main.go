@@ -7,8 +7,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/cordtus/penpal/internal/config"
 	"github.com/cordtus/penpal/internal/scan"
+	"github.com/cordtus/penpal/internal/settings"
 )
 
 func main() {
@@ -27,12 +27,12 @@ func main() {
 		return
 	}
 	if init {
-		if err := config.New(file); err != nil {
+		if err := settings.New(file); err != nil {
 			fmt.Println(err)
 		}
 		return
 	}
-	cfg, err := config.Load(file)
+	cfg, err := settings.Load(file)
 	if err != nil {
 		log.Fatal("Failed to load configuration:", err)
 	}

@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/cordtus/penpal/internal/alert"
-	"github.com/cordtus/penpal/internal/config"
 	"github.com/cordtus/penpal/internal/rpc"
+	"github.com/cordtus/penpal/internal/settings"
 )
 
-func Monitor(cfg config.Config) {
+func Monitor(cfg settings.Config) {
 	alertChan := make(chan alert.Alert)
 	exit := make(chan bool)
 	client := &http.Client{
@@ -23,17 +23,11 @@ func Monitor(cfg config.Config) {
 		go scanValidator(network, client, validator, alertChan)
 	}
 
-	alert.Watch(alertChan, config.Config{Notifiers: cfg.Notifiers}, client)
-
-	if cfg.Health.Interval != 0 {
-		go healthServer(cfg.Health.Port)
-		go healthCheck(cfg.Health, alertChan, client)
-	}
-
+	alert.Watch(alertChan, settings.Config{Notifiers: cfg.Notifiers}, client)
 	<-exit
 }
 
-func scanValidator(network config.Network, client *http.Client, validator config.Validators, alertChan chan<- alert.Alert) {
+func scanValidator(network settings.Network, client *http.Client, validator settings.Validators, alertChan chan<- alert.Alert) {
 	alerted := new(bool) // Initialize the alerted variable
 	for {
 		block, err := rpc.GetLatestBlock(network.Rpcs[0], client)
@@ -52,7 +46,7 @@ func scanValidator(network config.Network, client *http.Client, validator config
 	}
 }
 
-func checkValidator(network config.Network, block rpc.Block, validator config.Validators, alertChan chan<- alert.Alert, alerted *bool) {
+func checkValidator(network settings.Network, block rpc.Block, validator settings.Validators, alertChan chan<- alert.Alert, alerted *bool) {
 	var (
 		chainId   string
 		height    string
@@ -82,13 +76,13 @@ func checkValidator(network config.Network, block rpc.Block, validator config.Va
 	alertChan <- alert
 }
 
-func backCheck(network config.Network, height string, validator config.Validators, block rpc.Block, alerted *bool) alert.Alert {
+func backCheck(network settings.Network, height string, validator settings.Validators, block rpc.Block, alerted *bool) alert.Alert {
 	signedBlocks := 0
 	missedBlocks := 0
 	heightInt, _ := strconv.Atoi(height)
 
 	for checkHeight := heightInt - network.BackCheck + 1; checkHeight <= heightInt; checkHeight++ {
-		if checkSig(validator.Address, block, checkHeight) {
+		if checkSig(validator.Address, block) {
 			signedBlocks++
 		} else {
 			missedBlocks++
@@ -114,7 +108,7 @@ func backCheck(network config.Network, height string, validator config.Validator
 	}
 }
 
-func checkSig(address string, block rpc.Block, checkHeight int) bool {
+func checkSig(address string, block rpc.Block) bool {
 	for _, sig := range block.Result.Block.LastCommit.Signatures {
 		if sig.ValidatorAddress == address {
 			return true

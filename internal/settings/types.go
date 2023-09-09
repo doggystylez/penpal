@@ -1,10 +1,9 @@
-package config
+package settings
 
 type (
 	Config struct {
 		Network    []Network    `json:"network,omitempty"`
 		Notifiers  Notifiers    `json:"notifiers,omitempty"`
-		Health     Health       `json:"health,omitempty"`
 		Validators []Validators `json:"validators,omitempty"`
 	}
 
@@ -26,12 +25,6 @@ type (
 		Discord struct {
 			Webhook string `json:"webhook"`
 		} `json:"discord"`
-	}
-
-	Health struct {
-		Interval int      `json:"interval,omitempty"`
-		Port     string   `json:"port,omitempty"`
-		Nodes    []string `json:"nodes,omitempty"`
 	}
 
 	Validators struct {
