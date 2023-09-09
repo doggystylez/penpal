@@ -1,9 +1,11 @@
 package scan
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -22,14 +24,28 @@ func Monitor(cfg config.Config) {
 	network := cfg.Network[0]
 	go scanNetwork(cfg, network, alertChan, client)
 	go alert.Watch(alertChan, cfg.Notifiers, client)
-	print("hello-scan-monitor1")
+
 	if cfg.Health.Interval != 0 {
 		go healthServer(cfg.Health.Port)
 		go healthCheck(cfg.Health, alertChan, client)
 	}
 
+	go func() {
+
+		for {
+			time.Sleep(time.Second * 10)
+			printStackTraces()
+		}
+	}()
+
 	<-exit
-	print("hello-scan-monitor2")
+}
+
+func printStackTraces() {
+	stack := make([]byte, 1024)
+	length := runtime.Stack(stack, false)
+
+	fmt.Printf("Stack Trace:\n%s\n", stack[:length])
 }
 
 func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
