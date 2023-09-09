@@ -39,7 +39,7 @@ func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- ale
 		validator config.Validators
 	)
 	for {
-		checkNetwork(cfg, network, client, &alerted, alertChan, validator.Moniker) // Pass the validator's moniker
+		checkNetwork(cfg, network, client, &alerted, alertChan, validator.Moniker, validator.Address)
 		if alerted && network.Interval > 2 {
 			interval = 2
 		} else {
@@ -49,7 +49,7 @@ func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- ale
 	}
 }
 
-func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, moniker string) { // Receive the validator's moniker
+func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, moniker string, address string) {
 	var (
 		chainId string
 		height  string
@@ -100,15 +100,14 @@ func checkNetwork(cfg config.Config, network config.Network, client *http.Client
 
 	heightInt, _ := strconv.Atoi(height)
 
-	alertChan <- backCheck(cfg, network, heightInt, alerted, url, client, chainId, blocktime, moniker) // Pass the validator's moniker
+	alertChan <- backCheck(cfg, network, heightInt, alerted, url, client, chainId, blocktime, moniker, address)
 
 }
 
-func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, moniker string) alert.Alert {
+func backCheck(cfg config.Config, network config.Network, height int, alerted *bool, url string, client *http.Client, chainID string, LatestBlockTime time.Time, moniker string, address string) alert.Alert {
 	var (
 		signed    int
 		rpcErrors int
-		validator config.Validators
 	)
 
 	for checkHeight := height - network.BackCheck + 1; checkHeight <= height; checkHeight++ {
@@ -118,7 +117,7 @@ func backCheck(cfg config.Config, network config.Network, height int, alerted *b
 			network.BackCheck--
 			continue
 		}
-		if checkSig(validator.Address, block) {
+		if checkSig(address, block) {
 			signed++
 		}
 	}
@@ -131,7 +130,7 @@ func backCheck(cfg config.Config, network config.Network, height int, alerted *b
 			return alert.Nil("repeat alert suppressed - RpcDown on " + network.ChainId)
 		}
 	} else {
-		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + moniker)
+		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed for " + moniker)
 	}
 }
 
