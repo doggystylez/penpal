@@ -38,8 +38,9 @@ func main() {
 	}
 
 	network := cfg.Network[0]
+
 	if network.StallTime == 1 {
-		fmt.Println("warning! stall time for", network.ChainId, "is set to 1 minutes, this may cause more frequent false alerts")
+		fmt.Println("warning! stall time for", network.ChainId, "is set to 1 minute, this may cause more frequent false alerts")
 	} else if network.StallTime == 0 {
 		fmt.Println("warning! stall check for", network.ChainId, "is disabled")
 	}

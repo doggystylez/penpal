@@ -22,7 +22,6 @@ const (
 func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 	backoffAttempts := make(map[string]int)
 
-	// Initialize lastAlertTime to a time in the past to ensure the first alert is sent immediately.
 	var lastAlertTime = time.Now().Add(-time.Hour)
 
 	for {
@@ -37,13 +36,10 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 			continue
 		}
 
-		// Calculate time elapsed since the last alert was sent
 		timeElapsed := time.Since(lastAlertTime)
 
-		// Convert cfg.Network[0].Interval to time.Duration
 		interval := time.Duration(cfg.Network[0].Interval) * time.Second
 
-		// Check if enough time has passed since the last alert
 		if timeElapsed >= interval {
 			var notifications []notification
 			if cfg.Notifiers.Telegram.Key != "" {
