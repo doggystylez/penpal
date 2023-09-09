@@ -109,14 +109,14 @@ func backCheck(cfg config.Config, network config.Network, height int, alerted *b
 		rpcErrors int
 	)
 
-	for checkHeight := height - network.BackCheck + 1; checkHeight <= height; checkHeight++ {
-		block, err := rpc.GetBlockFromHeight(strconv.Itoa(checkHeight), url, client)
-		if err != nil || block.Error != nil {
-			rpcErrors++
-			network.BackCheck--
-			continue
-		}
-		if checkSig(address, block) {
+	block, err := rpc.GetBlockFromHeight(strconv.Itoa(height), url, client)
+	if err != nil || block.Error != nil {
+		rpcErrors++
+		network.BackCheck--
+	}
+
+	for _, validator := range cfg.Validators {
+		if checkSig(validator.Address, block) {
 			signed++
 		}
 	}
