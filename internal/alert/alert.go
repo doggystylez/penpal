@@ -19,8 +19,12 @@ const (
 	initialBackoff  = 1 * time.Second
 )
 
-func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Client) {
+func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 	backoffAttempts := make(map[string]int)
+
+	// Initialize lastAlertTime to a time in the past to ensure the first alert is sent immediately.
+	var lastAlertTime = time.Now().Add(-time.Hour)
+
 	for {
 		a := <-alertChan
 		if a.AlertType == None {
@@ -33,32 +37,44 @@ func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Clie
 			continue
 		}
 
-		var notifications []notification
-		if notifiers.Telegram.Key != "" {
-			notifications = append(notifications, telegramNoti(notifiers.Telegram.Key, notifiers.Telegram.Chat, a.Message))
-		}
-		if notifiers.Discord.Webhook != "" {
-			notifications = append(notifications, discordNoti(notifiers.Discord.Webhook, a.Message))
-		}
+		// Calculate time elapsed since the last alert was sent
+		timeElapsed := time.Since(lastAlertTime)
 
-		for _, n := range notifications {
-			go func(b notification, alertMsg string) {
-				backoffDuration := initialBackoff
-				for i := 0; i < maxRetries; i++ {
-					err := b.send(client)
-					if err == nil {
-						log.Println("Sent alert to", b.Type, alertMsg)
-						delete(backoffAttempts, alertMsg)
-						return
+		// Convert cfg.Network[0].Interval to time.Duration
+		interval := time.Duration(cfg.Network[0].Interval) * time.Second
+
+		// Check if enough time has passed since the last alert
+		if timeElapsed >= interval {
+			var notifications []notification
+			if cfg.Notifiers.Telegram.Key != "" {
+				notifications = append(notifications, telegramNoti(cfg.Notifiers.Telegram.Key, cfg.Notifiers.Telegram.Chat, a.Message))
+			}
+			if cfg.Notifiers.Discord.Webhook != "" {
+				notifications = append(notifications, discordNoti(cfg.Notifiers.Discord.Webhook, a.Message))
+			}
+
+			for _, n := range notifications {
+				go func(b notification, alertMsg string) {
+					backoffDuration := initialBackoff
+					for i := 0; i < maxRetries; i++ {
+						err := b.send(client)
+						if err == nil {
+							log.Println("Sent alert to", b.Type, alertMsg)
+							delete(backoffAttempts, alertMsg)
+							lastAlertTime = time.Now() // Update lastAlertTime
+							return
+						}
+						time.Sleep(backoffDuration)
+						backoffDuration *= 2
+						log.Printf("Error sending message %s to %s. Retrying in %v", alertMsg, b.Type, backoffDuration)
 					}
-					time.Sleep(backoffDuration)
-					backoffDuration *= 2
-					log.Printf("Error sending message %s to %s. Retrying in %v", alertMsg, b.Type, backoffDuration)
-				}
 
-				backoffAttempts[alertMsg]++
-				log.Printf("Error sending message %s to %s after maximum retries. Skipping further notifications.", alertMsg, b.Type)
-			}(n, a.Message)
+					backoffAttempts[alertMsg]++
+					log.Printf("Error sending message %s to %s after maximum retries. Skipping further notifications.", alertMsg, b.Type)
+				}(n, a.Message)
+			}
+		} else {
+			log.Printf("Not sending alert: %s. Waiting for the interval to pass.", a.Message)
 		}
 	}
 }

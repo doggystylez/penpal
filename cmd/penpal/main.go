@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -31,11 +32,11 @@ func main() {
 		}
 		return
 	}
-	cfg, err := config.Load(file)
+	cfg, err := config.Load("path/to/config.json")
 	if err != nil {
-		fmt.Println(err)
-		return
+		log.Fatal("Failed to load configuration:", err)
 	}
+
 	network := cfg.Network[0]
 	if network.StallTime == 1 {
 		fmt.Println("warning! stall time for", network.ChainId, "is set to 1 minutes, this may cause more frequent false alerts")
