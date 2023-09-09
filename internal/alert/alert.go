@@ -73,7 +73,7 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 				time.Sleep(alertDelay)
 			}
 		} else {
-			log.Printf("Not sending alert: %s. Waiting for the interval to pass.", a.Message)
+			log.Printf("Last alert was too recent: %s. Waiting for cool-down.", a.Message)
 		}
 	}
 }
@@ -117,11 +117,11 @@ func Missed(missed int, check int, validatorMoniker string) Alert {
 }
 
 func Cleared(signed int, check int, validatorMoniker string) Alert {
-	return Alert{AlertType: Clear, Message: ":face_exhaling:  alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validatorMoniker}
+	return Alert{AlertType: Clear, Message: ":face_exhaling:  alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for " + validatorMoniker}
 }
 
 func Signed(signed int, check int, validatorMoniker string) Alert {
-	return Alert{AlertType: Clear, Message: ":white_check_mark:  blocks! found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validatorMoniker}
+	return Alert{AlertType: Clear, Message: ":white_check_mark:  blocks! found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for " + validatorMoniker}
 }
 
 func NoRpc(ChainId string) Alert {

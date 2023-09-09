@@ -104,7 +104,7 @@ func backCheck(network config.Network, height string, validator config.Validator
 			*alerted = true
 			return alert.Missed(missedBlocks, network.BackCheck, validator.Moniker)
 		} else {
-			return alert.Nil("repeat alert suppressed - Missed blocks on " + validator.Moniker)
+			return alert.Nil("repeat alert suppressed - Missed blocks for " + validator.Moniker)
 		}
 	} else if signedBlocks == network.BackCheck {
 		if *alerted {
@@ -114,7 +114,7 @@ func backCheck(network config.Network, height string, validator config.Validator
 			return alert.Signed(signedBlocks, network.BackCheck, validator.Moniker)
 		}
 	} else {
-		return alert.Nil("found " + strconv.Itoa(signedBlocks) + " of " + strconv.Itoa(network.BackCheck) + " signed on " + validator.Moniker)
+		return alert.Nil("found " + strconv.Itoa(signedBlocks) + " of " + strconv.Itoa(network.BackCheck) + " signed for " + validator.Moniker)
 	}
 }
 
