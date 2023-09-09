@@ -18,7 +18,7 @@ func Monitor(cfg config.Config) {
 	client := &http.Client{
 		Timeout: time.Second * 5,
 	}
-
+	print("hello-scan-monitor1")
 	network := cfg.Network[0]
 	go scanNetwork(cfg, network, alertChan, client)
 	go alert.Watch(alertChan, cfg.Notifiers, client)
@@ -29,7 +29,7 @@ func Monitor(cfg config.Config) {
 	}
 
 	<-exit
-	print("hello-scan-monitor")
+	print("hello-scan-monitor2")
 }
 
 func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
