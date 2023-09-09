@@ -112,7 +112,6 @@ func backCheck(cfg config.Config, network config.Network, height int, alerted *b
 	block, err := rpc.GetBlockFromHeight(strconv.Itoa(height), url, client)
 	if err != nil || block.Error != nil {
 		rpcErrors++
-		network.BackCheck--
 	}
 
 	for _, validator := range cfg.Validators {
@@ -121,7 +120,7 @@ func backCheck(cfg config.Config, network config.Network, height int, alerted *b
 		}
 	}
 
-	if rpcErrors > network.BackCheck || network.BackCheck == 0 && network.RpcAlert {
+	if rpcErrors > network.BackCheck || (network.BackCheck == 0 && network.RpcAlert && rpcErrors > 0) {
 		if !*alerted {
 			*alerted = true
 			return alert.RpcDown(url)
@@ -129,7 +128,7 @@ func backCheck(cfg config.Config, network config.Network, height int, alerted *b
 			return alert.Nil("repeat alert suppressed - RpcDown on " + network.ChainId)
 		}
 	} else {
-		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(network.BackCheck) + " signed for " + moniker)
+		return alert.Nil("found " + strconv.Itoa(signed) + " of " + strconv.Itoa(len(cfg.Validators)) + " signed for " + moniker)
 	}
 }
 
