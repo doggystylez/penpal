@@ -18,11 +18,11 @@ func Monitor(cfg config.Config) {
 	client := &http.Client{
 		Timeout: time.Second * 5,
 	}
-	print("hello-scan-monitor1")
+
 	network := cfg.Network[0]
 	go scanNetwork(cfg, network, alertChan, client)
 	go alert.Watch(alertChan, cfg.Notifiers, client)
-
+	print("hello-scan-monitor1")
 	if cfg.Health.Interval != 0 {
 		go healthServer(cfg.Health.Port)
 		go healthCheck(cfg.Health, alertChan, client)
