@@ -51,9 +51,11 @@ func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- ale
 	var (
 		interval int
 		alerted  bool
-		moniker  string
-		address  string
 	)
+
+	moniker := cfg.Validators[0].Moniker
+	address := cfg.Validators[0].Address
+
 	for {
 		checkNetwork(cfg, network, client, &alerted, alertChan, moniker, address)
 		if alerted && network.Interval > 2 {
