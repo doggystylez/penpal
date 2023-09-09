@@ -53,18 +53,16 @@ func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- ale
 		alerted  bool
 	)
 
-	moniker := cfg.Validators[0].Moniker
-	address := cfg.Validators[0].Address
-
-	for {
-		checkNetwork(cfg, network, client, &alerted, alertChan, moniker, address)
-		if alerted && network.Interval > 2 {
-			interval = 2
-		} else {
-			interval = network.Interval
-		}
-		time.Sleep(time.Duration(interval) * time.Minute)
+	for _, validator := range cfg.Validators {
+		checkNetwork(cfg, network, client, &alerted, alertChan, validator.Moniker, validator.Address)
 	}
+
+	if alerted && network.Interval > 2 {
+		interval = 2
+	} else {
+		interval = network.Interval
+	}
+	time.Sleep(time.Duration(interval) * time.Minute)
 }
 
 func checkNetwork(cfg config.Config, network config.Network, client *http.Client, alerted *bool, alertChan chan<- alert.Alert, moniker string, address string) {
