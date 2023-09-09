@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/cordtus/penpal/internal/config"
+	"github.com/cordtus/penpal/settings"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 
 const retries = 3
 
-func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
+func Watch(alertChan <-chan Alert, cfg settings.Config, client *http.Client) {
 	backoffAttempts := make(map[string]int)
 	lastSignedTime := make(map[string]time.Time) // Track the last time a 'Signed' alert was sent for each message.
 
@@ -32,7 +32,7 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 		}
 
 		// Check if the alert type is 'Signed'
-		if a.AlertType == Signed {
+		if a.AlertType == alert.Signed {
 			// Get the last time a 'Signed' alert was sent for this message.
 			lastTime, exists := lastSignedTime[a.Message]
 			if exists {
@@ -58,8 +58,6 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 		for _, n := range notifications {
 			go func(b notification, alertMsg string) {
 				for i := 0; i < maxRetries; i++ {
-					interval := time.Duration(cfg.Network[0].Interval) * time.Second // Convert to time.Duration
-
 					// Add a delay before each retry
 					time.Sleep(1 * time.Second) // Adjust the duration as needed
 
