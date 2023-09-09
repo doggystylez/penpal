@@ -38,42 +38,32 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 			continue
 		}
 
-		timeElapsed := time.Since(lastAlertTime)
+		var notifications []notification
+		if cfg.Notifiers.Telegram.Key != "" {
+			notifications = append(notifications, telegramNoti(cfg.Notifiers.Telegram.Key, cfg.Notifiers.Telegram.Chat, a.Message))
+		}
+		if cfg.Notifiers.Discord.Webhook != "" {
+			notifications = append(notifications, discordNoti(cfg.Notifiers.Discord.Webhook, a.Message))
+		}
 
-		interval := time.Duration(cfg.Network[0].Interval) * time.Second
-
-		if timeElapsed >= interval {
-			var notifications []notification
-			if cfg.Notifiers.Telegram.Key != "" {
-				notifications = append(notifications, telegramNoti(cfg.Notifiers.Telegram.Key, cfg.Notifiers.Telegram.Chat, a.Message))
-			}
-			if cfg.Notifiers.Discord.Webhook != "" {
-				notifications = append(notifications, discordNoti(cfg.Notifiers.Discord.Webhook, a.Message))
-			}
-
-			for _, n := range notifications {
-				go func(b notification, alertMsg string) {
-					backoffDuration := initialBackoff
-					for i := 0; i < maxRetries; i++ {
-						err := b.send(client)
-						if err == nil {
-							log.Println("Sent alert to", b.Type, alertMsg)
-							delete(backoffAttempts, alertMsg)
-							lastAlertTime = time.Now()
-							return
-						}
-						time.Sleep(backoffDuration)
-						backoffDuration *= 2
-						log.Printf("Error sending message %s to %s. Retrying in %v", alertMsg, b.Type, backoffDuration)
+		for _, n := range notifications {
+			go func(b notification, alertMsg string) {
+				backoffDuration := initialBackoff
+				for i := 0; i < maxRetries; i++ {
+					err := b.send(client)
+					if err == nil {
+						log.Println("Sent alert to", b.Type, alertMsg)
+						delete(backoffAttempts, alertMsg)
+						return
 					}
+					time.Sleep(backoffDuration)
+					backoffDuration *= 2
+					log.Printf("Error sending message %s to %s. Retrying in %v", alertMsg, b.Type, backoffDuration)
+				}
 
-					backoffAttempts[alertMsg]++
-					log.Printf("Error sending message %s to %s after maximum retries. Skipping further notifications.", alertMsg, b.Type)
-				}(n, a.Message)
-				time.Sleep(alertDelay)
-			}
-		} else {
-			log.Printf("Last alert was too recent: %s. Waiting for cool-down.", a.Message)
+				backoffAttempts[alertMsg]++
+				log.Printf("Error sending message %s to %s after maximum retries. Skipping further notifications.", alertMsg, b.Type)
+			}(n, a.Message)
 		}
 	}
 }
