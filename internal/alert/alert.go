@@ -16,15 +16,10 @@ import (
 const (
 	maxRepeatAlerts = 5
 	maxRetries      = 5
-	initialBackoff  = 1 * time.Second
 )
 
 func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 	backoffAttempts := make(map[string]int)
-
-	var lastAlertTime = time.Now().Add(-time.Hour)
-
-	alertDelay := 250 * time.Millisecond
 
 	for {
 		a := <-alertChan
@@ -48,7 +43,9 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 
 		for _, n := range notifications {
 			go func(b notification, alertMsg string) {
-				backoffDuration := initialBackoff
+				interval := time.Duration(cfg.Network[0].Interval) * time.Second // Convert to time.Duration
+				time.Sleep(interval)
+
 				for i := 0; i < maxRetries; i++ {
 					err := b.send(client)
 					if err == nil {
@@ -56,9 +53,7 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 						delete(backoffAttempts, alertMsg)
 						return
 					}
-					time.Sleep(backoffDuration)
-					backoffDuration *= 2
-					log.Printf("Error sending message %s to %s. Retrying in %v", alertMsg, b.Type, backoffDuration)
+					log.Printf("Error sending message %s to %s. Retrying...", alertMsg, b.Type)
 				}
 
 				backoffAttempts[alertMsg]++
