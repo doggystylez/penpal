@@ -28,11 +28,6 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 			continue
 		}
 
-		if backoffAttempts[a.Message] >= maxRepeatAlerts {
-			log.Printf("Maximum repeat attempts reached for alert: %s. Skipping further notifications.", a.Message)
-			continue
-		}
-
 		var notifications []notification
 		if cfg.Notifiers.Telegram.Key != "" {
 			notifications = append(notifications, telegramNoti(cfg.Notifiers.Telegram.Key, cfg.Notifiers.Telegram.Chat, a.Message))
@@ -43,10 +38,12 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 
 		for _, n := range notifications {
 			go func(b notification, alertMsg string) {
-				interval := time.Duration(cfg.Network[0].Interval) * time.Second // Convert to time.Duration
-				time.Sleep(interval)
-
 				for i := 0; i < maxRetries; i++ {
+					interval := time.Duration(cfg.Network[0].Interval) * time.Second // Convert to time.Duration
+
+					// Add a 0.2 second delay before each retry
+					time.Sleep(200 * time.Millisecond)
+
 					err := b.send(client)
 					if err == nil {
 						log.Println("Sent alert to", b.Type, alertMsg)
@@ -54,9 +51,6 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 						return
 					}
 					log.Printf("Error sending message %s to %s. Retrying...", alertMsg, b.Type)
-
-					// Add a 0.2 second delay before retrying
-					time.Sleep(200 * time.Millisecond)
 				}
 
 				backoffAttempts[alertMsg]++
