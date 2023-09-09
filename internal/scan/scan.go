@@ -49,12 +49,13 @@ func printStackTraces() {
 
 func scanNetwork(cfg config.Config, network config.Network, alertChan chan<- alert.Alert, client *http.Client) {
 	var (
-		interval  int
-		alerted   bool
-		validator config.Validators
+		interval int
+		alerted  bool
+		moniker  string
+		address  string
 	)
 	for {
-		checkNetwork(cfg, network, client, &alerted, alertChan, validator.Moniker, validator.Address)
+		checkNetwork(cfg, network, client, &alerted, alertChan, moniker, address)
 		if alerted && network.Interval > 2 {
 			interval = 2
 		} else {
