@@ -118,11 +118,11 @@ func Missed(missed int, check int, validatorMoniker string) Alert {
 }
 
 func Cleared(signed int, check int, validatorMoniker string) Alert {
-	return Alert{AlertType: Clear, Message: "😌 alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validatorMoniker}
+	return Alert{AlertType: Clear, Message: ":face_exhaling:  alert resolved. found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validatorMoniker}
 }
 
 func Signed(signed int, check int, validatorMoniker string) Alert {
-	return Alert{AlertType: Clear, Message: "😌 blocks! found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validatorMoniker}
+	return Alert{AlertType: Clear, Message: ":white_check_mark:  blocks! found " + strconv.Itoa(signed) + " of " + strconv.Itoa(check) + " signed blocks for validator " + validatorMoniker}
 }
 
 func NoRpc(ChainId string) Alert {
