@@ -24,6 +24,9 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 
 	var lastAlertTime = time.Now().Add(-time.Hour)
 
+	// Add a time duration for the delay between alerts
+	alertDelay := 250 * time.Millisecond
+
 	for {
 		a := <-alertChan
 		if a.AlertType == None {
@@ -57,7 +60,7 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 						if err == nil {
 							log.Println("Sent alert to", b.Type, alertMsg)
 							delete(backoffAttempts, alertMsg)
-							lastAlertTime = time.Now() // Update lastAlertTime
+							lastAlertTime = time.Now()
 							return
 						}
 						time.Sleep(backoffDuration)
@@ -68,6 +71,7 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 					backoffAttempts[alertMsg]++
 					log.Printf("Error sending message %s to %s after maximum retries. Skipping further notifications.", alertMsg, b.Type)
 				}(n, a.Message)
+				time.Sleep(alertDelay)
 			}
 		} else {
 			log.Printf("Not sending alert: %s. Waiting for the interval to pass.", a.Message)
