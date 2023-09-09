@@ -54,6 +54,9 @@ func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
 						return
 					}
 					log.Printf("Error sending message %s to %s. Retrying...", alertMsg, b.Type)
+
+					// Add a 0.2 second delay before retrying
+					time.Sleep(200 * time.Millisecond)
 				}
 
 				backoffAttempts[alertMsg]++
