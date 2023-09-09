@@ -20,33 +20,65 @@ const (
 
 const retries = 3
 
-func Watch(alertChan <-chan Alert, notifiers config.Notifiers, client *http.Client) {
+func Watch(alertChan <-chan Alert, cfg config.Config, client *http.Client) {
+	backoffAttempts := make(map[string]int)
+	lastSignedTime := make(map[string]time.Time) // Track the last time a 'Signed' alert was sent for each message.
+
 	for {
 		a := <-alertChan
-		var notifications []notification
-		if notifiers.Telegram.Key != "" {
-			notifications = append(notifications, telegramNoti(notifiers.Telegram.Key, notifiers.Telegram.Chat, a.Message))
-		}
-		if notifiers.Discord.Webhook != "" {
-			notifications = append(notifications, discordNoti(notifiers.Discord.Webhook, a.Message))
-		}
-		if a.AlertType != None {
-			for _, n := range notifications {
-				go func(b notification) {
-					for i := 0; i < retries; i++ {
-						err := b.send(client)
-						if err == nil {
-							log.Println("sent alert to", b.Type, a.Message)
-							return
-						}
-						time.Sleep(1 * time.Second)
-					}
-					log.Println("error sending message", a.Message, "to", b.Type, "after", retries, "tries")
-				}(n)
-			}
-		} else {
+		if a.AlertType == None {
 			log.Println(a.Message)
+			continue
 		}
+
+		// Check if the alert type is 'Signed'
+		if a.AlertType == Signed {
+			// Get the last time a 'Signed' alert was sent for this message.
+			lastTime, exists := lastSignedTime[a.Message]
+			if exists {
+				// Check if it's been less than 15 minutes since the last 'Signed' alert.
+				if time.Since(lastTime) < 15*time.Minute {
+					log.Printf("Skipping 'Signed' alert for message '%s' as it was sent within the last 15 minutes.", a.Message)
+					continue
+				}
+			}
+
+			// Update the last sent time for this message.
+			lastSignedTime[a.Message] = time.Now()
+		}
+
+		var notifications []notification
+		if cfg.Notifiers.Telegram.Key != "" {
+			notifications = append(notifications, telegramNoti(cfg.Notifiers.Telegram.Key, cfg.Notifiers.Telegram.Chat, a.Message))
+		}
+		if cfg.Notifiers.Discord.Webhook != "" {
+			notifications = append(notifications, discordNoti(cfg.Notifiers.Discord.Webhook, a.Message))
+		}
+
+		for _, n := range notifications {
+			go func(b notification, alertMsg string) {
+				for i := 0; i < maxRetries; i++ {
+					interval := time.Duration(cfg.Network[0].Interval) * time.Second // Convert to time.Duration
+
+					// Add a delay before each retry
+					time.Sleep(1 * time.Second) // Adjust the duration as needed
+
+					err := b.send(client)
+					if err == nil {
+						log.Println("Sent alert to", b.Type, alertMsg)
+						delete(backoffAttempts, alertMsg)
+						return
+					}
+					log.Printf("Error sending message %s to %s. Retrying...", alertMsg, b.Type)
+				}
+
+				backoffAttempts[alertMsg]++
+				log.Printf("Error sending message %s to %s after maximum retries. Skipping further notifications.", alertMsg, b.Type)
+			}(n, a.Message)
+		}
+
+		// Add a delay between sending each alert
+		time.Sleep(1 * time.Second) // Adjust the duration as needed
 	}
 }
 
